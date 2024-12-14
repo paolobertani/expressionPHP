@@ -1,7 +1,4 @@
 <?php
-//
-//  test suite
-//
 
 
 
@@ -11,19 +8,25 @@
 
 require_once( __DIR__ . "/../formula.php" );
 
+
+
 use function \Kalei\Formula\formula;
 
 
 
-define( "Success", 'success' );
-define( "Failure", 'failure' );
+define( "Success", "success" );
+define( "Failure", "failure" );
 
 
-define( "StopAtFirstFail", ( isset( $argv[ 1 ] ) && $argv[ 1 ] === 'stop' ) );
+
+define( "StopAtFirstFail", ( isset( $argv[ 1 ] ) && $argv[ 1 ] === "stop" ) );
+
 
 
 $testCount = 0;
-$fails = 0;
+$fails     = 0;
+$totalTime = 0;
+
 
 
 RunTests();
@@ -38,6 +41,7 @@ function RunTests()
 {
     global $testCount;
     global $fails;
+    global $totalTime;
 
     $b = 0.0;
     $e = 0.0;
@@ -193,7 +197,7 @@ function RunTests()
 
     if( $fails === 0 )
     {
-        echo "All $testCount tests passed!\n";
+        echo "All $testCount tests passed! Elapsed time: " . $totalTime / 1000 . " ms.\n";
     }
     else
     {
@@ -211,10 +215,13 @@ function Test( $lineNumber, $expectedStatus, $expectedResult, $expression, $para
 {
     global $testCount;
     global $fails;
+    global $totalTime;
 
     $testCount++;
 
-    $returnedResult = formula( $expression, $error, $parameters );
+    $returnedResult = formula( $expression, $error, $parameters, $elapsedTime );
+
+    $totalTime += $elapsedTime;
 
     if( $returnedResult === null )
     {
