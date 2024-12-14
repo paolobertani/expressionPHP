@@ -89,8 +89,16 @@ if( count( get_included_files() ) === 1 )
 
 
 
-function formula( $expression, &$error = "", $parameters = null )
+function formula( $expression, &$error = "", $parameters = null, &$elapsedTime = null )
 {
+    //
+    // time
+    //
+
+    $startTime = _microsecondsSince();
+
+
+
     //
     // parameters check and storing
     //
@@ -211,11 +219,13 @@ function formula( $expression, &$error = "", $parameters = null )
     if( $eval->error )
     {
         $error = "$eval->error\n$eval->expression\n" . str_repeat( " ", $eval->cursor ) . "^---\n";
+        $elapsedTime = _microsecondsSince( $startTime );
         return null;
     }
     else
     {
         $error = "";
+        $elapsedTime = _microsecondsSince( $startTime );
         return $result;
     }
 }
@@ -1358,4 +1368,15 @@ function _parse_string( $str, &$cursor )
     }
 
     return false;
+}
+
+
+
+// returns microseconds since passed value
+// or unix epoch time
+
+function _microsecondsSince( $since = 0 )
+{
+    $mt = explode( ' ', microtime() );
+    return intval( $mt[1] * 1E6 ) + intval( round( $mt[0] * 1E6 ) ) - intval( $since );
 }
