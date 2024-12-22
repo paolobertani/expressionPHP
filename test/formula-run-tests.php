@@ -26,6 +26,7 @@ define( "StopAtFirstFail", ( isset( $argv[ 1 ] ) && $argv[ 1 ] === "stop" ) );
 $testCount = 0;
 $fails     = 0;
 $totalTime = 0;
+$singleTime= [];
 
 
 
@@ -42,6 +43,7 @@ function RunTests()
     global $testCount;
     global $fails;
     global $totalTime;
+    global $singleTime;
 
     $b = 0.0;
     $e = 0.0;
@@ -167,24 +169,12 @@ function RunTests()
 
     // Unary minus precedence
 
-    if( unary_minus_has_highest_precedence )
-    {
-        // Unary minus has highest precedence
-        Test( __LINE__, Success,  9,    "-3^2" );   // (-3)^2
-        /***/ // Test( __LINE__, Success,  8,    "64^-2" );
-        Test( __LINE__, Success,  9,    "5+-2^2" ); // unary minus has always highest precedence
-        Test( __LINE__, Success,  4,    "-2^2" );   //
-        Test( __LINE__, Failure,  null, "-3!" );    // * (-3)!
-    }
-    else
-    {
-        // Unary minus has lowest precedence (with exceptions)
-        Test( __LINE__, Success, -9,  "-3^2" );   // -(3^2)
-        /***/ // Test( __LINE__, Success,  8,  "64^-2" );  // unary minus has highest precedence after a binary operator but...
-        Test( __LINE__, Success,  1,  "5+-2^2" ); // ...has lowest precedence after `+`
-        Test( __LINE__, Success, -4,  "-2^2" );   //
-        Test( __LINE__, Success, -6,  "-3!" );    // -(3!)
-    }
+    // Unary minus has lowest precedence (with exceptions)
+    Test( __LINE__, Success, -9,  "-3^2" );   // -(3^2)
+    /***/ // Test( __LINE__, Success,  8,  "64^-2" );  // unary minus has highest precedence after a binary operator but...
+    Test( __LINE__, Success,  1,  "5+-2^2" ); // ...has lowest precedence after `+`
+    Test( __LINE__, Success, -4,  "-2^2" );   //
+    Test( __LINE__, Success, -6,  "-3!" );    // -(3!)
 
 
     // Strings
@@ -197,7 +187,9 @@ function RunTests()
 
     if( $fails === 0 )
     {
-        echo "All $testCount tests passed! Elapsed time: " . $totalTime / 1000 . " ms.\n";
+        echo "All $testCount tests passed!\nElapsed time: " . $totalTime / 1000 . " ms.\n";
+        arsort( $singleTime );
+        echo "Worst at line " . key( $singleTime ) . " took " . reset( $singleTime ) . "µs.\n";
     }
     else
     {
@@ -216,12 +208,14 @@ function Test( $lineNumber, $expectedStatus, $expectedResult, $expression, $para
     global $testCount;
     global $fails;
     global $totalTime;
+    global $singleTime;
 
     $testCount++;
 
     $returnedResult = formula( $expression, $error, $parameters, $elapsedTime );
 
     $totalTime += $elapsedTime;
+    $singleTime[ $lineNumber ] = $elapsedTime;
 
     if( $returnedResult === null )
     {
