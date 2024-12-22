@@ -47,16 +47,6 @@ namespace Kalei\Formula;
 
 
 
-if( ! defined( "unary_minus_has_highest_precedence" ) )
-{
-    define( "unary_minus_has_highest_precedence", false );
-
-    //   true:  -2^2  =  (-2)^2  =   4
-    //  false:  -2^2  =  -(2^2)  =  -4
-}
-
-
-
 // If the script is called directy from the CLI
 // it is evaluated the expression passed as first param
 // and result returned to stdout.
@@ -214,7 +204,7 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
     // begin
     //
 
-    $result = _processLow( $eval, -1, true, false );
+    $result = _coreParse( $eval, -1, true, false );
 
     if( $eval->error )
     {
@@ -260,15 +250,22 @@ if( ! function_exists('intdiv') )
 
 
 
-/// Evaluates expression parts between low-precedence operators:
-// + addition; - subtraction; . string concat.; | logical or
-// "breakOn" parameter define cases where the function must exit.
+// Parses and evaluates expression parts between lower precedence operators:
+// `+` sum
+// `-` subtraction
+// `.` string concatenation
+// `|` logical OR
+// and
+// `)` closed round bracked (decrementing count)
+// breakOnRBC, breakOnEOF, breakOnCOMMA define cases where the function must return
+// The function is going to be called recursively
+// The function relies on `_CoreParseHiger` to parse parts between higher prec. ops.
 
-function _processLow( $eval,
-                      $breakOnRBC,    // If open brackets count goes down to this count then exit;
-                      $breakOnEOF,                   // exit if the end of the string is met;
-                      $breakOnCOMMA,                 // exit if a comma is met;
-                     &$tokenThatCausedBreak = null ) // if not null the token/symbol that caused the function to exit;
+function _coreParse( $eval,
+                     $breakOnRBC,                   // If open brackets count goes down to this count then exit;
+                     $breakOnEOF,                   // exit if the end of the string is met;
+                     $breakOnCOMMA,                 // exit if a comma is met;
+                    &$tokenThatCausedBreak = null ) // if not null the token/symbol that caused the function to exit;
 {
     $leftToken = null;
     $rightToken =null;
@@ -281,7 +278,8 @@ function _processLow( $eval,
     {
         $leftToken = $rightToken;
 
-        $value = _processHi( $eval, null, "Mul", false, $rightToken ); // `null` as value lets $rightToken be accepted despite type
+        $value = _coreParseHigher( $eval, null, "Mul", false, $rightToken ); // `null` as value lets $rightToken be accepted despite type
+        //                          ^^^^___`null`lets... ^^^^^^^^^^___ ...this be always accepted desptite its type
         if( $eval->error ) return 0;
 
         if( $leftToken === "Sum" )
@@ -389,16 +387,26 @@ function _processLow( $eval,
 
 
 
-// Evaluates expression parts between hi-precedencedence operators:
-// * product; / division; & logical AND
+// Evaluates expression parts between higher precedencedence operators...
+// `*` product
+// `/` division
+// `&` logical AND
+// `!` factorial
+// `^` exponentiation
+//
+// ...`(` open round braket (calls _coreParse)...
+//
+// ...and functions
+
+
 // Expression parts can be explicit values or functions
 // "breakOn" parameter define cases where the function must exit.
 
-function _processHi( $eval,
-                     $leftValue, // The value (already fetched) on the left to be computed with what follows
-                     $op,        // the operation to perform;
-                     $isExponent,// is an exponent being evaluated ?
-                    &$leftOp )   // RETURN: factors are over, this is the next operator (token).
+function _coreParseHigher( $eval,
+                           $leftValue, // The value (already fetched) on the left to be computed with what follows
+                           $op,        // the operation to perform;
+                           $isExponent,// is an exponent being evaluated ?
+                          &$leftOp )   // RETURN: factors are over, this is the next operator (token).
 {
     $token = "";
     $nextOp = "";
@@ -421,7 +429,7 @@ function _processHi( $eval,
 
     do
     {
-        $rightValue = _processToken( $eval, $token, $leftValue );
+        $rightValue = _parseToken( $eval, $token, $leftValue );
         if( $eval->error ) return 0;
 
         // Unary minus, plus, logical not?
@@ -430,19 +438,19 @@ function _processHi( $eval,
         if( $token === "Sub" )
         {
             $sign = -1;
-            $rightValue = _processToken( $eval, $token, $leftValue );
+            $rightValue = _parseToken( $eval, $token, $leftValue );
             if( $eval->error ) return 0;
         }
         elseif( $token === 'Not')
         {
             $not = 1;
-            $rightValue = _processToken( $eval, $token, $leftValue );
+            $rightValue = _parseToken( $eval, $token, $leftValue );
             if( $eval->error ) return 0;
         }
         elseif( $token === "Sum" )
         {
             $sign = 1;
-            $rightValue = _processToken( $eval, $token, $leftValue );
+            $rightValue = _parseToken( $eval, $token, $leftValue );
             if( $eval->error ) return 0;
         }
         else
@@ -458,7 +466,7 @@ function _processHi( $eval,
         {
             $eval->RBC++;
 
-            $rightValue = _processLow( $eval, $eval->RBC - 1, false, false );
+            $rightValue = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return 0;
 
             $token = "Val";
@@ -468,7 +476,7 @@ function _processHi( $eval,
 
         if( in_array( $token, $functionTokens ) )
         {
-            $rightValue = _processFunction( $eval, $token );
+            $rightValue = _parseFunction( $eval, $token );
             if( $eval->error ) return 0;
 
             $token = "Val";
@@ -486,34 +494,18 @@ function _processHi( $eval,
         // Get beforehand the next token
         // to see if it's an exponential or factorial operator
 
-        _processToken( $eval, $nextOp, $rightValue );
+        _parseToken( $eval, $nextOp, $rightValue );
         if( $eval->error ) return 0;
 
         if( $nextOp === "Fct" )
         {
-            if( unary_minus_has_highest_precedence )
-            {
-                $rightValue = _processFactorial( $eval, $rightValue * $sign, $nextOp );
-                $sign = 1;
-            }
-            else
-            {
-                $rightValue = _processFactorial( $eval, $rightValue, $nextOp );
-            }
+            $rightValue = _parseFactorial( $eval, $rightValue, $nextOp );
             if( $eval->error ) return 0;
         }
 
         if( $nextOp === "Exc" )
         {
-            if( unary_minus_has_highest_precedence )
-            {
-                $rightValue = _processExponentiation( $eval, $rightValue * $sign, $nextOp );
-                $sign = 1;
-            }
-            else
-            {
-                $rightValue = _processExponentiation( $eval, $rightValue, $nextOp );
-            }
+            $rightValue = _processExponentiation( $eval, $rightValue, $nextOp );
             if( $eval->error ) return 0;
         }
 
@@ -613,7 +605,7 @@ function _processHi( $eval,
 // inside the round brackets then computes the function
 // specified by the token `func`.
 
-function _processFunction( $eval, $func )
+function _parseFunction( $eval, $func )
 {
     $result = 0.0;
     $result2= 0.0;
@@ -625,7 +617,7 @@ function _processFunction( $eval, $func )
 
     // Eat an open round bracket and count it
 
-    _processToken( $eval, $token, null );
+    _parseToken( $eval, $token, null );
     if( $eval->error ) return 0;
 
     if( $token !== "rbo" )
@@ -639,7 +631,7 @@ function _processFunction( $eval, $func )
     switch( $func )
     {
         case "Fac":
-            $result = _processLow( $eval, $eval->RBC - 1, false, false );
+            $result = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result ) )
@@ -668,7 +660,7 @@ function _processFunction( $eval, $func )
         break;
 
         case "Pow":
-            $result = _processLow( $eval, -1, false, true );
+            $result = _coreParse( $eval, -1, false, true );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result ) )
@@ -677,7 +669,7 @@ function _processFunction( $eval, $func )
                 return 0;
             }
 
-            $result2 = _processLow( $eval, $eval->RBC - 1, false, false );
+            $result2 = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result2 ) )
@@ -702,7 +694,7 @@ function _processFunction( $eval, $func )
         break;
 
         case "Max":
-            $result = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result ) )
@@ -713,7 +705,7 @@ function _processFunction( $eval, $func )
 
             while( $tokenThatCausedBreak === "com" )
             {
-                $result2 = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $result2 = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return 0;
 
                 if( ! is_int( $result2 ) )
@@ -730,7 +722,7 @@ function _processFunction( $eval, $func )
             break;
 
         case "Min":
-            $result = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result ) )
@@ -741,7 +733,7 @@ function _processFunction( $eval, $func )
 
             while( $tokenThatCausedBreak === "com" )
             {
-                $result2 = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $result2 = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return 0;
 
                 if( ! is_int( $result2 ) )
@@ -758,7 +750,7 @@ function _processFunction( $eval, $func )
         break;
 
         case "Avg":
-            $result = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result ) )
@@ -770,7 +762,7 @@ function _processFunction( $eval, $func )
             $count = 1;
             while( $tokenThatCausedBreak === "com" )
             {
-                $result2 = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $result2 = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return 0;
 
                 if( ! is_int( $result2 ) )
@@ -787,7 +779,7 @@ function _processFunction( $eval, $func )
         break;
 
         case "Len":
-            $result = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return 0;
 
             if( ! is_string( $result ) )
@@ -800,7 +792,7 @@ function _processFunction( $eval, $func )
         break;
 
         case "Trim":
-            $result = _processLow( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return 0;
 
             if( ! is_string( $result ) )
@@ -813,7 +805,7 @@ function _processFunction( $eval, $func )
         break;
 
         case "Substr":
-            $result = _processLow( $eval, -1, false, true );
+            $result = _coreParse( $eval, -1, false, true );
             if( $eval->error ) return 0;
 
             if( ! is_string( $result ) )
@@ -822,7 +814,7 @@ function _processFunction( $eval, $func )
                 return 0;
             }
 
-            $result2 = _processLow( $eval, $eval->RBC - 1, false, false );
+            $result2 = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result2 ) )
@@ -831,7 +823,7 @@ function _processFunction( $eval, $func )
                 return 0;
             }
 
-            $result3 = _processLow( $eval, $eval->RBC - 1, false, false );
+            $result3 = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return 0;
 
             if( ! is_int( $result3 ) )
@@ -868,7 +860,7 @@ function _processExponentiation( $eval,
         return 0;
     }
 
-    $exponent = _processHi( $eval, 1, "Mul", true, $rightOp );
+    $exponent = _coreParseHigher( $eval, 1, "Mul", true, $rightOp );
     if( $eval->error ) return 0;
 
     if( ! is_int( $exponent) )
@@ -898,7 +890,7 @@ function _processExponentiation( $eval,
 
 // Evaluates a factorial
 
-function _processFactorial( $eval,
+function _parseFactorial( $eval,
                             $value,     // The value to compute has already been fetched;
                            &$rightOp )  // RETURN: the token (operator) that follows.
 {
@@ -930,7 +922,7 @@ function _processFactorial( $eval,
         $result *= $i;
     }
 
-    _processToken( $eval, $rightOp, $value );
+    _parseToken( $eval, $rightOp, $value );
     if( $eval->error ) return 0;
 
     return $result;
@@ -942,7 +934,7 @@ function _processFactorial( $eval,
 // The function returns a number, a string or a boolean if the token is a value or a param.
 // Whitespace is ignored.
 
-function _processToken( $eval,
+function _parseToken( $eval,
                         &$token,      // RETURN: the token.
                          $leftValue ) // necessary to distinguish `Not from `Fct`
 {
@@ -957,7 +949,7 @@ function _processToken( $eval,
        $c = ( $eval->expression )[ $eval->cursor ];
        if( ( $c >= "0" && $c <= "9" ) || $c === "\"" ) // there is no need to catch 't'rue and 'f'alse here
        {                                               // as they are added as params [***]
-           $value = _processValue( $eval );
+           $value = _parseValue( $eval );
            if( $eval->error )
            {
                $t = "Err";
@@ -998,7 +990,7 @@ function _processToken( $eval,
                    break;
 
                case "+":
-                   _processPlusToken( $eval, $t );
+                   _twoConsecutivePlusTokensAreNotAllowed( $eval, $t );
                    break;
 
                case "-":
@@ -1185,7 +1177,7 @@ function _processToken( $eval,
 // Advances the cursor.
 // Always returns 0.
 
-function _processPlusToken( $eval, &$token )
+function _twoConsecutivePlusTokensAreNotAllowed( $eval, &$token )
 {
     $c = "";
 
@@ -1213,7 +1205,7 @@ function _processPlusToken( $eval, &$token )
 // cursor is not changed (advanced) in case of parsing error,
 // and null is returned
 
-function _processValue( $eval )
+function _parseValue( $eval )
 {
     $result = null;
     $str = $eval->expression;
@@ -1246,7 +1238,7 @@ function _processValue( $eval )
 
     if( $str[ $idx ] === "\"" )
     {
-        $result = _parse_string( $str, $idx );
+        $result = _parseString( $str, $idx );
         if( $result === false ) // parse error
         {
             $result = null;
@@ -1296,7 +1288,7 @@ function _processValue( $eval )
 // parse a string starting from `$cursor`
 // false is returned if parsing fails
 
-function _parse_string( $str, &$cursor )
+function _parseString( $str, &$cursor )
 {
     // calling function already detected open double quotes
 
