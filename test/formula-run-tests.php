@@ -19,7 +19,7 @@ define( "Failure", "failure" );
 
 
 
-define( "StopAtFirstFail", ( isset( $argv[ 1 ] ) && $argv[ 1 ] === "stop" ) );
+define( "StopAtFirstFail", isset( $argv[ 1 ] ) );
 
 
 
@@ -200,8 +200,15 @@ function RunTests()
     Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", strpos( \"fooBAR\", \"BAR\" ) + 2 )" );
     Test( __LINE__, Failure, null, "strpos( \"fooBAR BAR\", \"BAR\", 4, 1)" );
 
+
     // Functions
 
+    Test( __LINE__, Success, bin2hex("FOOBAR\n"), "bin2hex(\"FOOBAR\\n\")" );
+    Test( __LINE__, Success, "FOOBAR\n", "hex2bin(bin2hex(\"FOOBAR\\n\"))" );
+    Test( __LINE__, Success, bin2hex("FOO❤️BAR\n"), "bin2hex(\"FOO❤️BAR\\n\")" );
+    Test( __LINE__, Success, "FOO❤️BAR\n", "hex2bin(bin2hex(\"FOO❤️BAR\\n\"))" );
+    Test( __LINE__, Success, bin2hex("FOO❤️\0\0\0BAR\n"), "bin2hex(\"FOO❤️\\0\\0\\0BAR\\n\")" );
+    Test( __LINE__, Success, "FOO❤️\0\0\0BAR\n", "hex2bin(bin2hex(\"FOO❤️\\0\\0\\0BAR\\n\"))" );
 
 
     // All tests passed?

@@ -79,42 +79,47 @@ if( count( get_included_files() ) === 1 )
 
 
 
+//
+// functions
+//
+
+const FUNCTIONS = [
+    "strpos"        => "Stp",
+    "str"           => "Str",
+    "fact"          => "Fac",
+    "pow"           => "Pow",
+    "max"           => "Max",
+    "min"           => "Min",
+    "average"       => "Avg",
+    "avg"           => "Avg",
+    "length"        => "Len",
+    "len"           => "Len",
+    "strlen"        => "Len",
+    "trim"          => "Trm",
+    "substr"        => "Sst",
+    "bin2hex"       => "B2h",
+    "chr"           => "Chr",
+    "hex2bin"       => "H2b",
+    "htmlentities"  => "Hte",
+    "ord"           => "Ord",
+    "ltrim"         => "Ltr",
+    "rtrim"         => "Rtr",
+    "sha1"          => "Sha"
+];
+
+
+
+//
+// main
+//
+
 function formula( $expression, &$error = "", $parameters = null, &$elapsedTime = null )
 {
     //
-    // time
+    // execution time measurement
     //
 
     $startTime = _microsecondsSince();
-
-
-
-    //
-    // functions
-    //
-
-    $FUNCTIONS = [
-        "Str" => "str",
-        "Fac" => "fact",
-        "Pow" => "pow",
-        "Max" => "max",
-        "Min" => "min",
-        "Avg" => "avg",
-        "Avg" => "average",
-        "Len" => "len",
-        "Trm" => "trim",
-        "Sst" => "substr",
-        "Stp" => "strpos",
-        "B2h" => "bin2hex",
-        "Chr" => "chr",
-        "Spf" => "sprintf",
-        "H2b" => "hex2bin",
-        "Hte" => "htmlentities",
-        "Ord" => "ord",
-        "Ltr" => "ltrim",
-        "Rtr" => "rtrim",
-        "Sha" => "sha1"
-    ];
 
 
 
@@ -155,7 +160,7 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
                 throw new \Exception( "parameter value must be a integer, boolean or string" );
             }
 
-            if( in_array( $name, $reservedKeywords ) !== false )
+            if( array_key_exists( $name, FUNCTIONS ) !== false )
             {
                 throw new \Exception( "parameter name must not be a reserved keyword: $name" );
             }
@@ -208,7 +213,7 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
     // begin
     //
 
-    $result = _coreParse( $eval, -1, true, false, null, $FUNCTIONS );
+    $result = _coreParse( $eval, -1, true, false, $tokenThatCausedBreak );
 
     if( $eval->error )
     {
@@ -248,8 +253,7 @@ function _coreParse( $eval,
                      $breakOnRBC,                   // If open brackets count goes down to this count then exit;
                      $breakOnEOF,                   // exit if the end of the string is met;
                      $breakOnCOMMA,                 // exit if a comma is met;
-                    &$tokenThatCausedBreak = null,  // if not null the token/symbol that caused the function to exit;
-                    &$FUNCTIONS )
+                    &$tokenThatCausedBreak = null )  // if not null the token/symbol that caused the function to exit;
 {
     $leftToken = null;
     $rightToken =null;
@@ -266,11 +270,10 @@ function _coreParse( $eval,
                                    null,        // `null` as value lets $rightToken be accepted despite type
                                    "Mul",
                                    false,
-                                   $rightToken,
-                                   $FUNCTIONS );
+                                   $rightToken );
         if( $eval->error ) return null;
 
-        if( $leftToken === "Sum" )
+        /**/if( $leftToken === "Sum" )
         {
             if( $result === null )
             {
@@ -394,8 +397,7 @@ function _coreParseHigher( $eval,
                            $leftValue, // The value (already fetched) on the left to be computed with what follows
                            $op,        // the operation to perform;
                            $isExponent,// is an exponent being evaluated ?
-                          &$leftOp,    // RETURN: factors are over, this is the next operator (token).
-                          &$FUNCTIONS )
+                          &$leftOp )   // RETURN: factors are over, this is the next operator (token).
 {
     $token = "";
     $nextOp = "";
@@ -417,19 +419,18 @@ function _coreParseHigher( $eval,
         "Stp",
         "B2h",
         "Chr",
-        "Sprintf",
-        "Hex2bin",
-        "Htmlentities",
+        "H2b",
+        "Hte",
         "Md5",
         "Ord",
-        "Ltrim",
-        "Rtrim",
-        "Sha1"
+        "Ltr",
+        "Rtr",
+        "Sha"
     ];
 
     do
     {
-        $rightValue = _parseToken( $eval, $token, $leftValue, $FUNCTIONS );
+        $rightValue = _parseToken( $eval, $token, $leftValue );
         if( $eval->error ) return null;
 
         // Unary minus, plus, logical not?
@@ -740,7 +741,7 @@ function _evaluateFunction( $eval, $func )
                     $smallestValue = $smallerValueMaybe;
                 }
             }
-            $result = $smallestValue
+            $result = $smallestValue;
             break;
 
 
@@ -791,7 +792,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Trim":
+        case "Trm":
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -822,11 +823,11 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Substr":
+        case "Sst":
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
-            if( ! is_string( $result ) )
+            if( ! is_string( $text ) )
             {
                 $eval->error = "expected string";
                 return null;
@@ -873,7 +874,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Strpos":
+        case "Stp":
             $haystack = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -898,7 +899,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak === 'com' )
+            if( $tokenThatCausedBreak === "COM" )
             {
                 $offset = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -908,8 +909,6 @@ function _evaluateFunction( $eval, $func )
                     $eval->error = "expected integer";
                     return null;
                 }
-
-                $offset = $result;
 
                 $result = strpos( $haystack, $needle, $offset );
             }
@@ -926,7 +925,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Bin2hex":
+        case "B2h":
             $bin = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -961,14 +960,14 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Hex2bin":
+        case "H2b":
             $hex = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
             }
 
-            if( ! is_string( $hex ) || ctype_xdigit( $hex ) )
+            if( ! is_string( $hex ) || ! ctype_xdigit( $hex ) )
             {
                 $eval->error = "expected hex string";
                 return null;
@@ -979,7 +978,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Htmlentities":
+        case "Hte":
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1032,7 +1031,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Ltrim":
+        case "Ltr":
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1050,7 +1049,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Rtrim":
+        case "Rtr":
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1068,7 +1067,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Sha1":
+        case "Sha":
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1185,10 +1184,9 @@ function _parseFactorial( $eval,
 
 function _parseToken( $eval,
                      &$token,      // RETURN: the token.
-                      $leftValue,  // in case of `!' operator: a value on the left implies `factorial`
-                      $FUNCTIONS ) //                          otherwise implies `logical NOT`
-{                                  //                          (and a trailing value is expected)
-    // skip whitespace
+                      $leftValue ) // in case of `!' operator: a value on the left implies `factorial`
+{   //                                                         otherwise implies `logical NOT`
+    // skip whitespace                                         (and a trailing value is expected)
 
     while( true )
     {
@@ -1333,13 +1331,13 @@ function _parseToken( $eval,
 
     // function maybe
 
-    foreach( $FUNCTIONS as $funtok => $name )
+    foreach( FUNCTIONS as $name => $funtok )
     {
         $len = strlen( $name ) ;
         if( substr( $eval->expression, $eval->cursor, $len ) === $name )
         {
             $token = $funtok;
-            $eval->cursor += len;
+            $eval->cursor += $len;
             return null;
             /*--- EXIT POINT ---*/
         }
