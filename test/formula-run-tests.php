@@ -177,7 +177,28 @@ function RunTests()
     Test( __LINE__, Success, -6,  "-3!" );    // -(3!)
 
 
+    // Integer functions
+
+    Test( __LINE__, Success, 10,  "avg( 0, 10, 20 )" );
+
+
     // Strings
+
+    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 3 )" );
+    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 3, 3 )" );
+    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", -3, 3 )" );
+    Test( __LINE__, Success, "ooBAR","substr( \"fooBAR\", 1, 100 )" );
+    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 1+1+1, 6/2 )" );
+    Test( __LINE__, Success, "BAR",  "substr( \"foo\" . \"BAR\", 1+1+1, 6/2 )" );
+
+    Test( __LINE__, Success, "BAR",  "trim( \"   BAR  \\t\\n\\r\" )" );
+    Test( __LINE__, Success, "BAR",  "trim( \"****BAR==*==\", \"*=\" )" );
+
+    Test( __LINE__, Success, 3,    "strpos( \"fooBAR\", \"BAR\" )" );
+    Test( __LINE__, Success, 3,    "strpos( \"fooBAR BAR\", \"BAR\", 3 )" );
+    Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", 4 )" );
+    Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", strpos( \"fooBAR\", \"BAR\" ) + 2 )" );
+    Test( __LINE__, Failure, null, "strpos( \"fooBAR BAR\", \"BAR\", 4, 1)" );
 
     // Functions
 
