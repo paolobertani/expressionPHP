@@ -2,7 +2,7 @@
 /*
 
 formula
-version 0.1
+version 0.2
 
 discrete parser / evaluator of integers, booleans, strings,
     string functions and integer expressions
@@ -10,7 +10,7 @@ discrete parser / evaluator of integers, booleans, strings,
 Copyright (c) 2024 Paolo Bertani - Kalei S.r.l.
 Licensed under the FreeBSD 2-clause license
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 FreeBSD 2-clause license
 
@@ -20,21 +20,21 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-1. Redistributions of source code must retain the above copyright notice, this
+1. Redistributions  of source code must retain the above copyright notice, this
    list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
+2. Redistributions  in  binary  form must reproduce the above copyright notice,
+   this  list  of  conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \AS IS\ AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ANY  EXPRESS  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES  OF  MERCHANTABILITY  AND  FITNESS  FOR  A  PARTICULAR  PURPOSE  ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ANY DIRECT,  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING,  BUT  NOT  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE,  DATA,  OR  PROFITS;  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON  ANY  THEORY  OF  LIABILITY,  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING  NEGLIGENCE  OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -------------------------------------------------------------------------------
@@ -90,6 +90,35 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
 
 
     //
+    // functions
+    //
+
+    $FUNCTIONS = [
+        "Str" => "str",
+        "Fac" => "fact",
+        "Pow" => "pow",
+        "Max" => "max",
+        "Min" => "min",
+        "Avg" => "avg",
+        "Avg" => "average",
+        "Len" => "len",
+        "Trm" => "trim",
+        "Sst" => "substr",
+        "Stp" => "strpos",
+        "B2h" => "bin2hex",
+        "Chr" => "chr",
+        "Spf" => "sprintf",
+        "H2b" => "hex2bin",
+        "Hte" => "htmlentities",
+        "Ord" => "ord",
+        "Ltr" => "ltrim",
+        "Rtr" => "rtrim",
+        "Sha" => "sha1"
+    ];
+
+
+
+    //
     // parameters check and storing
     //
 
@@ -104,20 +133,6 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
     }
     else
     {
-        $reservedKeywords =
-        [
-            "if",
-            "fact",
-            "pow",
-            "max",
-            "min",
-            "avg",
-            "average",
-            "len",
-            "trim",
-            "substr"
-        ];
-
         foreach( $parameters as $name => $value )
         {
             if( ! is_string( $name ) )
@@ -177,7 +192,8 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
     //
 
     $eval = new \StdClass();
-    $eval->expression  = $expression . "\0\0"; // expr is null terminated to allow parser detect EOF as "\0" is met
+    $eval->expression  = $expression . "\0\0\0\0";
+    // the parser will always met a 0x00 at the end
 
     $eval->paramsName  = $paramsName;
     $eval->paramsVal   = $paramsVal;
@@ -189,22 +205,10 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
     $eval->error  = "";
 
     //
-    // free setup mem
-    //
-
-    unset( $name     );
-    unset( $value    );
-    unset( $reservedKeywords );
-    unset( $paramCnt );
-    unset( $paramName);
-    unset( $paramVal );
-    unset( $paramLen );
-
-    //
     // begin
     //
 
-    $result = _coreParse( $eval, -1, true, false );
+    $result = _coreParse( $eval, -1, true, false, null, $FUNCTIONS );
 
     if( $eval->error )
     {
@@ -228,28 +232,6 @@ function formula( $expression, &$error = "", $parameters = null, &$elapsedTime =
 
 
 
-// implement `intdiv()` if not available
-
-if( ! function_exists('intdiv') )
-{
-    function intdiv( $dividend, $divisor )
-    {
-        if( $divisor === 0 )
-        {
-            Throw new \InvalidArgumentException( "Division by zero" );
-        }
-
-        if( ! is_int( $dividend ) || ! is_int( $divisor ) )
-        {
-            Throw new \InvalidArgumentException( "Both dividend and divisor must be integers" );
-        }
-
-        return (int) ( $dividend - $dividend % $divisor ) / $divisor;
-    }
-}
-
-
-
 // Parses and evaluates expression parts between lower precedence operators:
 // `+` sum
 // `-` subtraction
@@ -259,13 +241,15 @@ if( ! function_exists('intdiv') )
 // `)` closed round bracked (decrementing count)
 // breakOnRBC, breakOnEOF, breakOnCOMMA define cases where the function must return
 // The function is going to be called recursively
-// The function relies on `_CoreParseHiger` to parse parts between higher prec. ops.
+// The function calls `_coreParseHiger()` to parse parts between higher
+// precedence operators.
 
 function _coreParse( $eval,
                      $breakOnRBC,                   // If open brackets count goes down to this count then exit;
                      $breakOnEOF,                   // exit if the end of the string is met;
                      $breakOnCOMMA,                 // exit if a comma is met;
-                    &$tokenThatCausedBreak = null ) // if not null the token/symbol that caused the function to exit;
+                    &$tokenThatCausedBreak = null,  // if not null the token/symbol that caused the function to exit;
+                    &$FUNCTIONS )
 {
     $leftToken = null;
     $rightToken =null;
@@ -278,9 +262,13 @@ function _coreParse( $eval,
     {
         $leftToken = $rightToken;
 
-        $value = _coreParseHigher( $eval, null, "Mul", false, $rightToken ); // `null` as value lets $rightToken be accepted despite type
-        //                          ^^^^___`null`lets... ^^^^^^^^^^___ ...this be always accepted desptite its type
-        if( $eval->error ) return 0;
+        $value = _coreParseHigher( $eval,
+                                   null,        // `null` as value lets $rightToken be accepted despite type
+                                   "Mul",
+                                   false,
+                                   $rightToken,
+                                   $FUNCTIONS );
+        if( $eval->error ) return null;
 
         if( $leftToken === "Sum" )
         {
@@ -295,7 +283,7 @@ function _coreParse( $eval,
             else
             {
                 $eval->error = "left and right addends must be integers";
-                return 0;
+                return null;
             }
         }
         elseif( $leftToken === "Sub" )
@@ -307,7 +295,7 @@ function _coreParse( $eval,
             else
             {
                 $eval->error = "left and right operands must be integers";
-                return 0;
+                return null;
             }
         }
         elseif( $leftToken === "Conc" )
@@ -319,7 +307,7 @@ function _coreParse( $eval,
             else
             {
                 $eval->error = "left and right operands must be strings";
-                return 0;
+                return null;
             }
         }
         elseif( $leftToken === "Or" )
@@ -331,7 +319,7 @@ function _coreParse( $eval,
             else
             {
                 $eval->error = "left and right operands must be booleans";
-                return 0;
+                return null;
             }
         }
     }
@@ -340,13 +328,13 @@ function _coreParse( $eval,
     // A round close bracket:
     // check for negative count.
 
-    if( $rightToken === "rbc" )
+    if( $rightToken === "RBC" )
     {
         $eval->RBC--;
         if( $eval->RBC < 0 )
         {
             $eval->error = "unexpected close round bracket";
-            return 0;
+            return null;
         }
     }
 
@@ -356,7 +344,7 @@ function _coreParse( $eval,
 
     // Check if we must exit
 
-    if( ( $eval->RBC === $breakOnRBC ) || ( $breakOnEOF && $rightToken === "Eof" ) || ( $breakOnCOMMA && $rightToken === "com" ) )
+    if( ( $eval->RBC === $breakOnRBC ) || ( $breakOnEOF && $rightToken === "EOF" ) || ( $breakOnCOMMA && $rightToken === "COM" ) )
     {
         return $result;
     }
@@ -365,15 +353,15 @@ function _coreParse( $eval,
 
     switch( $rightToken )
     {
-        case "Eof":
+        case "EOF":
             $eval->error = "unexpected end of expression";
             break;
 
-        case "rbc":
+        case "RBC":
             $eval->error = "unexpected close round bracket";
             break;
 
-        case "com":
+        case "COM":
             $eval->error = "unexpected comma";
             break;
 
@@ -382,7 +370,7 @@ function _coreParse( $eval,
             break;
     }
 
-    return 0;
+    return null;
 }
 
 
@@ -394,7 +382,7 @@ function _coreParse( $eval,
 // `!` factorial
 // `^` exponentiation
 //
-// ...`(` open round braket (calls _coreParse)...
+// ...`(` open round braket (calls _coreParse with a mutual recursion logic)...
 //
 // ...and functions
 
@@ -406,7 +394,8 @@ function _coreParseHigher( $eval,
                            $leftValue, // The value (already fetched) on the left to be computed with what follows
                            $op,        // the operation to perform;
                            $isExponent,// is an exponent being evaluated ?
-                          &$leftOp )   // RETURN: factors are over, this is the next operator (token).
+                          &$leftOp,    // RETURN: factors are over, this is the next operator (token).
+                          &$FUNCTIONS )
 {
     $token = "";
     $nextOp = "";
@@ -423,14 +412,25 @@ function _coreParseHigher( $eval,
         "Min",
         "Avg",
         "Len",
-        "Trim",
-        "Substr"
+        "Trm",
+        "Sst",
+        "Stp",
+        "B2h",
+        "Chr",
+        "Sprintf",
+        "Hex2bin",
+        "Htmlentities",
+        "Md5",
+        "Ord",
+        "Ltrim",
+        "Rtrim",
+        "Sha1"
     ];
 
     do
     {
-        $rightValue = _parseToken( $eval, $token, $leftValue );
-        if( $eval->error ) return 0;
+        $rightValue = _parseToken( $eval, $token, $leftValue, $FUNCTIONS );
+        if( $eval->error ) return null;
 
         // Unary minus, plus, logical not?
         // store the sign and get the next token
@@ -439,19 +439,19 @@ function _coreParseHigher( $eval,
         {
             $sign = -1;
             $rightValue = _parseToken( $eval, $token, $leftValue );
-            if( $eval->error ) return 0;
+            if( $eval->error ) return null;
         }
         elseif( $token === 'Not')
         {
             $not = 1;
             $rightValue = _parseToken( $eval, $token, $leftValue );
-            if( $eval->error ) return 0;
+            if( $eval->error ) return null;
         }
         elseif( $token === "Sum" )
         {
             $sign = 1;
             $rightValue = _parseToken( $eval, $token, $leftValue );
-            if( $eval->error ) return 0;
+            if( $eval->error ) return null;
         }
         else
         {
@@ -462,12 +462,12 @@ function _coreParseHigher( $eval,
         // Open round bracket?
         // The expression between brackets is evaluated.
 
-        if( $token === "rbo" )
+        if( $token === "RBO" )
         {
             $eval->RBC++;
 
             $rightValue = _coreParse( $eval, $eval->RBC - 1, false, false );
-            if( $eval->error ) return 0;
+            if( $eval->error ) return null;
 
             $token = "Val";
         }
@@ -476,8 +476,8 @@ function _coreParseHigher( $eval,
 
         if( in_array( $token, $functionTokens ) )
         {
-            $rightValue = _parseFunction( $eval, $token );
-            if( $eval->error ) return 0;
+            $rightValue = _evaluateFunction( $eval, $token );
+            if( $eval->error ) return null;
 
             $token = "Val";
         }
@@ -488,25 +488,25 @@ function _coreParseHigher( $eval,
         if( $token !== "Val" )
         {
             $eval->error = "expected value";
-            return 0;
+            return null;
         }
 
         // Get beforehand the next token
         // to see if it's an exponential or factorial operator
 
         _parseToken( $eval, $nextOp, $rightValue );
-        if( $eval->error ) return 0;
+        if( $eval->error ) return null;
 
         if( $nextOp === "Fct" )
         {
             $rightValue = _parseFactorial( $eval, $rightValue, $nextOp );
-            if( $eval->error ) return 0;
+            if( $eval->error ) return null;
         }
 
         if( $nextOp === "Exc" )
         {
-            $rightValue = _processExponentiation( $eval, $rightValue, $nextOp );
-            if( $eval->error ) return 0;
+            $rightValue = _evaluateExponentiation( $eval, $rightValue, $nextOp );
+            if( $eval->error ) return null;
         }
 
         // multiplication/division is finally
@@ -519,12 +519,12 @@ function _coreParseHigher( $eval,
                 if( $sign === -1 && ! is_int( $rightValue ) )
                 {
                     $eval->error = "unary minus before non integer value";
-                    return 0;
+                    return null;
                 }
                 if( $not === 1 && ! is_bool( $rightValue ) )
                 {
                     $eval->error = "unary `not` before non boolean value";
-                    return 0;
+                    return null;
                 }
 
                 if( is_int( $rightValue ) )
@@ -547,7 +547,7 @@ function _coreParseHigher( $eval,
             else
             {
                 $eval->error = "left and right operands must be integers";
-                return 0;
+                return null;
             }
         }
         elseif( $op === "Div" )
@@ -560,7 +560,7 @@ function _coreParseHigher( $eval,
             else
             {
                 $eval->error = "left and right operands must be integers";
-                return 0;
+                return null;
             }
 
         }
@@ -580,7 +580,7 @@ function _coreParseHigher( $eval,
             else
             {
                 $eval->error = "left and right operands must be booleans";
-                return 0;
+                return null;
             }
         }
 
@@ -605,25 +605,17 @@ function _coreParseHigher( $eval,
 // inside the round brackets then computes the function
 // specified by the token `func`.
 
-function _parseFunction( $eval, $func )
+function _evaluateFunction( $eval, $func )
 {
-    $result = 0.0;
-    $result2= 0.0;
-
-    $count = 0;
-
-    $tokenThatCausedBreak = "";
-    $token = "";
-
-    // Eat an open round bracket and count it
+    // Skip an open round bracket incementing count
 
     _parseToken( $eval, $token, null );
-    if( $eval->error ) return 0;
+    if( $eval->error ) return null;
 
-    if( $token !== "rbo" )
+    if( $token !== "RBO" )
     {
         $eval->error = "expected open round bracket after function name";
-        return 0;
+        return null;
     }
 
     $eval->RBC++;
@@ -631,212 +623,471 @@ function _parseFunction( $eval, $func )
     switch( $func )
     {
         case "Fac":
-            $result = _coreParse( $eval, $eval->RBC - 1, false, false );
-            if( $eval->error ) return 0;
+            $operand = _coreParse( $eval, $eval->RBC - 1, false, false );
+            if( $eval->error ) return null;
 
-            if( ! is_int( $result ) )
+            if( ! is_int( $operand ) )
             {
                 $eval->error = "expected integer";
-                return 0;
+                return null;
             }
 
-            if( $result < 0 )
+            if( $operand < 0 )
             {
                 $eval->error = "attempt to evaluate factorial of negative number";
-                return 0;
+                return null;
             }
-            if( $result > 20 )
+            if( $operand > 20 )
             {
                 $eval->error = "result exceeds signed integer";
-                return 0;
+                return null;
             }
 
-            $t = 1;
-            for( $f = 1; $f <= $result; $f++ )
+            $tmp = 1;
+            $result = 1;
+            for( $tmp = 1; $tmp <= $operand; $tmp++ )
             {
-                $t *= $f;
+                $result *= $tmp;
             }
-            $result = $t;
-        break;
+            break;
+
+
 
         case "Pow":
-            $result = _coreParse( $eval, -1, false, true );
-            if( $eval->error ) return 0;
+            $base = _coreParse( $eval, -1, false, true );
+            if( $eval->error ) return null;
 
-            if( ! is_int( $result ) )
+            if( ! is_int( $base ) )
             {
                 $eval->error = "expected integer";
-                return 0;
+                return null;
             }
 
-            $result2 = _coreParse( $eval, $eval->RBC - 1, false, false );
-            if( $eval->error ) return 0;
+            $exponent = _coreParse( $eval, $eval->RBC - 1, false, false );
+            if( $eval->error ) return null;
 
-            if( ! is_int( $result2 ) )
+            if( ! is_int( $exponent ) )
             {
-                $eval->error = "expected integers";
-                return 0;
+                $eval->error = "expected integer";
+                return null;
             }
 
-            $result = pow( $result, $result2 );
+            $result = pow( $base, $exponent );
 
             if( ! is_int( $result ) )
             {
                 $eval->error = "result is not integer";
-                return 0;
-            }
-            if( $result > pow( 2, 31 ) )
-            {
-                $eval->error = "result exceeds signed integer";
-                return 0;
-            }
-            $result = intval( $result );
-        break;
-
-        case "Max":
-            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return 0;
-
-            if( ! is_int( $result ) )
-            {
-                $eval->error = "expected integers";
-                return 0;
-            }
-
-            while( $tokenThatCausedBreak === "com" )
-            {
-                $result2 = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-                if( $eval->error ) return 0;
-
-                if( ! is_int( $result2 ) )
-                {
-                    $eval->error = "expected integers";
-                    return 0;
-                }
-
-                if( $result2 > $result )
-                {
-                    $result = $result2;
-                }
+                return null;
             }
             break;
 
-        case "Min":
-            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return 0;
 
-            if( ! is_int( $result ) )
+
+        case "Max":
+            $greatestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_int( $greatestValue ) )
             {
-                $eval->error = "expected integers";
-                return 0;
+                $eval->error = "expected integer";
+                return null;
             }
 
-            while( $tokenThatCausedBreak === "com" )
+            while( $tokenThatCausedBreak === "COM" )
             {
-                $result2 = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-                if( $eval->error ) return 0;
+                $greaterValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
 
-                if( ! is_int( $result2 ) )
+                if( ! is_int( $greaterValueMaybe ) )
+                {
+                    $eval->error = "expected integer";
+                    return null;
+                }
+
+                if( $greaterValueMaybe > $greatestValue )
+                {
+                    $greatestValue = $greaterValueMaybe;
+                }
+            }
+            $result = $greatestValue;
+            break;
+
+
+
+        case "Min":
+            $smallestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_int( $smallestValue ) )
+            {
+                $eval->error = "expected integers";
+                return null;
+            }
+
+            while( $tokenThatCausedBreak === "COM" )
+            {
+                $smallerValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
+
+                if( ! is_int( $smallerValueMaybe ) )
                 {
                     $eval->error = "expected integers";
-                    return 0;
+                    return null;
                 }
 
-                if( $result2 < $result )
+                if( $smallerValueMaybe < $smallestValue )
                 {
-                    $result = $result2;
+                    $smallestValue = $smallerValueMaybe;
                 }
             }
-        break;
+            $result = $smallestValue
+            break;
+
+
 
         case "Avg":
-            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return 0;
+            $total = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
 
-            if( ! is_int( $result ) )
+            if( ! is_int( $total ) )
             {
                 $eval->error = "expected integers";
-                return 0;
+                return null;
             }
 
             $count = 1;
-            while( $tokenThatCausedBreak === "com" )
+            while( $tokenThatCausedBreak === "COM" )
             {
-                $result2 = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-                if( $eval->error ) return 0;
+                $value = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
 
-                if( ! is_int( $result2 ) )
+                if( ! is_int( $value ) )
                 {
                     $eval->error = "expected integers";
-                    return 0;
+                    return null;
                 }
 
-                $result += $result2;
+                $total += $value;
                 $count++;
             }
 
-            $result = intdiv( $result, $count );
-        break;
+            $result = intdiv( $total, $count );
+            break;
+
+
 
         case "Len":
-            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return 0;
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
 
-            if( ! is_string( $result ) )
+            if( ! is_string( $text ) )
             {
                 $eval->error = "expected string";
-                return 0;
+                return null;
             }
 
-            $result = strlen( $result );
-        break;
+            $result = strlen( $text );
+            break;
+
+
 
         case "Trim":
-            $result = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return 0;
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
 
-            if( ! is_string( $result ) )
+            if( ! is_string( $text ) )
             {
                 $eval->error = "expected string";
-                return 0;
+                return null;
             }
 
-            $result = trim( $result );
-        break;
+            if( $tokenThatCausedBreak === "COM" )
+            {
+                $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
+
+                if( ! is_string( $charsToTrim ) )
+                {
+                    $eval->error = "expected string";
+                    return null;
+                }
+
+                $result = trim( $text, $charsToTrim );
+            }
+            else
+            {
+                $result = trim( $text );
+            }
+            break;
+
+
 
         case "Substr":
-            $result = _coreParse( $eval, -1, false, true );
-            if( $eval->error ) return 0;
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
 
             if( ! is_string( $result ) )
             {
                 $eval->error = "expected string";
-                return 0;
+                return null;
             }
 
-            $result2 = _coreParse( $eval, $eval->RBC - 1, false, false );
-            if( $eval->error ) return 0;
-
-            if( ! is_int( $result2 ) )
+            if( $tokenThatCausedBreak !== "COM" )
             {
-                $eval->error = "expected integers";
-                return 0;
+                $eval->error = "expected comma";
+                return null;
             }
 
-            $result3 = _coreParse( $eval, $eval->RBC - 1, false, false );
-            if( $eval->error ) return 0;
+            $startIndex = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
 
-            if( ! is_int( $result3 ) )
+            if( ! is_int( $startIndex ) )
             {
-                $eval->error = "expected integers";
-                return 0;
+                $eval->error = "expected integer";
+                return null;
             }
 
-            $result = substr( $result, $result2, $result3 );
-        break;
+            if( $tokenThatCausedBreak === "RBC" )
+            {
+                $result = substr( $text, $startIndex );
+            }
+            elseif( $tokenThatCausedBreak === "COM" )
+            {
+                $charactersCount = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
+
+                if( ! is_int( $charactersCount ) )
+                {
+                    $eval->error = "expected integer";
+                    return null;
+                }
+
+                $result = substr( $text, $startIndex, $charactersCount );
+            }
+            else
+            {
+                $eval->error = "expected integer or close round bracket";
+                return null;
+            }
+            break;
+
+
+
+        case "Strpos":
+            $haystack = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $haystack ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak !== "COM" )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $needle = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $needle ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak === 'com' )
+            {
+                $offset = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
+
+                if( ! is_int( $offset ) )
+                {
+                    $eval->error = "expected integer";
+                    return null;
+                }
+
+                $offset = $result;
+
+                $result = strpos( $haystack, $needle, $offset );
+            }
+            else
+            {
+                $result = strpos( $haystack, $needle );
+            }
+
+            if( $result === false )
+            {
+                $result = -1;
+            }
+            break;
+
+
+
+        case "Bin2hex":
+            $bin = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+            if( ! is_string( $bin ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = bin2hex( $bin );
+            break;
+
+
+
+        case "Chr":
+            $ascii = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( ! is_int( $ascii ) )
+            {
+                $eval->error = "expected integer";
+                return null;
+            }
+
+            $result = chr( $ascii );
+            break;
+
+
+
+        case "Hex2bin":
+            $hex = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( ! is_string( $hex ) || ctype_xdigit( $hex ) )
+            {
+                $eval->error = "expected hex string";
+                return null;
+            }
+
+            $result = hex2bin( $hex );
+            break;
+
+
+
+        case "Htmlentities":
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+            if( ! is_string( $text ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = htmlentities( $text );
+            break;
+
+
+
+        case "Md5":
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( ! is_string( $text ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = md5( $text );
+            break;
+
+
+
+        case "Ord":
+            $char = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( ! is_string( $char ) )
+            {
+                $eval->error = "expected character";
+                return null;
+            }
+
+            $result = ord( $char );
+            break;
+
+
+
+        case "Ltrim":
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( ! is_string( $text ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = ltrim( $text );
+            break;
+
+
+
+        case "Rtrim":
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( ! is_string( $text ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = rtrim( $text );
+            break;
+
+
+
+        case "Sha1":
+            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( ! is_string( $text ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = sha1( $text );
+            break ;
+
+
 
         default:
-            $result = 0;
+            $result = null;
             break;
     }
 
@@ -847,9 +1098,9 @@ function _parseFunction( $eval, $func )
 
 // Evaluates an exponentiation.
 
-function _processExponentiation( $eval,
-                                 $base,      // The base has already been fetched;
-                                &$rightOp )  // RETURN: the token (operator) that follows.
+function _evaluateExponentiation( $eval,
+                                  $base,      // The base has already been fetched;
+                                 &$rightOp )  // RETURN: the token (operator) that follows.
 {
     $exponent = 0;
     $result = 0;
@@ -857,22 +1108,22 @@ function _processExponentiation( $eval,
     if( ! is_int( $base ) )
     {
         $eval->error = "base must be integer";
-        return 0;
+        return null;
     }
 
     $exponent = _coreParseHigher( $eval, 1, "Mul", true, $rightOp );
-    if( $eval->error ) return 0;
+    if( $eval->error ) return null;
 
     if( ! is_int( $exponent) )
     {
         $eval->error = "exponent must be integer";
-        return 0;
+        return null;
     }
 
     if( $exponent < 0 )
     {
         $eval->error = "exponent must be zero or positive";
-        return 0;
+        return null;
     }
 
     $result = pow( $base, $exponent );
@@ -880,7 +1131,7 @@ function _processExponentiation( $eval,
     if( $result >= 9223372036854775808 /* -2^63 */ || $result <= -9223372036854775808 /* -2^63 */ )
     {
         $eval->error = "exponentiation result exceeds integer limit";
-        return 0;
+        return null;
     }
 
     return intval( $result );
@@ -894,26 +1145,24 @@ function _parseFactorial( $eval,
                             $value,     // The value to compute has already been fetched;
                            &$rightOp )  // RETURN: the token (operator) that follows.
 {
-    $result = 0;
-
     if( $value < 0 )
     {
         $eval->error = "attempt to evaluate factorial of negative number";
-        $rightOp = "Err";
-        return 0;
+        $rightOp = "ERR";
+        return null;
     }
 
     if( ! is_int( $value ) )
     {
         $eval->error = "attempt to evaluate factorial of a non-integer value";
-        $rightOp = "Err";
-        return 0;
+        $rightOp = "ERR";
+        return null;
     }
 
     if( $value > 20 )
     {
         $eval->error = "factorial result exceeds integer limit";
-        return 0;
+        return null;
     }
 
     $result = 1;
@@ -923,7 +1172,7 @@ function _parseFactorial( $eval,
     }
 
     _parseToken( $eval, $rightOp, $value );
-    if( $eval->error ) return 0;
+    if( $eval->error ) return null;
 
     return $result;
 }
@@ -931,241 +1180,176 @@ function _parseFactorial( $eval,
 
 
 // Parses the next token and advances the cursor.
-// The function returns a number, a string or a boolean if the token is a value or a param.
-// Whitespace is ignored.
+// The function returns a number, a string or a boolean if the token is a value or a param,
+// otherwise `null` is returned. Whitespace is skipped.
 
 function _parseToken( $eval,
-                        &$token,      // RETURN: the token.
-                         $leftValue ) // necessary to distinguish `Not from `Fct`
-{
-   $name = "";
-   $t = "Blk";
-   $value = 0;
+                     &$token,      // RETURN: the token.
+                      $leftValue,  // in case of `!' operator: a value on the left implies `factorial`
+                      $FUNCTIONS ) //                          otherwise implies `logical NOT`
+{                                  //                          (and a trailing value is expected)
+    // skip whitespace
 
-   while( $t === "Blk" )
-   {
-       // value maybe
-
-       $c = ( $eval->expression )[ $eval->cursor ];
-       if( ( $c >= "0" && $c <= "9" ) || $c === "\"" ) // there is no need to catch 't'rue and 'f'alse here
-       {                                               // as they are added as params [***]
-           $value = _parseValue( $eval );
-           if( $eval->error )
-           {
-               $t = "Err";
-               return $t;
-           }
-           else
-           {
-               $t = "Val";
-           }
-           break;
-       }
-       else
-       {
-           // parameter maybe
-
-           $n = $eval->paramsCnt;
-           for( $i = 0; $i < $n; $i++ )
-           {
-               if( substr( $eval->expression, $eval->cursor, $eval->paramsLen[ $i ] ) === $eval->paramsName[ $i ] )
-               {
-                   $token = "Val";
-                   $eval->cursor += $eval->paramsLen[ $i ];
-                   return $eval->paramsVal[ $i ];
-                   /*--- EXIT POINT ---*/
-               }
-           }
-
-           // token maybe
-
-           switch( ( $eval->expression )[ $eval->cursor ] )
-           {
-               case "\n":
-               case "\r":
-               case "\t":
-               case " ":
-                   $t = "Blk";
-                   $eval->cursor++;
-                   break;
-
-               case "+":
-                   _twoConsecutivePlusTokensAreNotAllowed( $eval, $t );
-                   break;
-
-               case "-":
-                   $t = "Sub";
-                   $eval->cursor++;
-                   break;
-
-               case ".":
-                   $t = "Conc";
-                   $eval->cursor++;
-                   break;
-
-               case "*":
-                   $t = "Mul";
-                   $eval->cursor++;
-                   break;
-
-               case "/":
-                   $t = "Div";
-                   $eval->cursor++;
-                   break;
-
-               case "^":
-                   $t = "Exc";
-                   $eval->cursor++;
-                   break;
-
-               case "!": // if it trails a number then `Factorial` otherwise `Not`
-                   $t = is_int( $leftValue ) ? "Fct" : "Not";
-                   $eval->cursor++;
-                   break;
-
-               case "&":
-                   $t = "And";
-                   $eval->cursor++;
-                   if( ( $eval->expression )[ $eval->cursor ] === "&" ) // && is an alias of &
-                   {
-                       $eval->cursor++;
-                   }
-                   break;
-
-               case "|":
-                   $t = "Or";
-                   $eval->cursor++;
-                   if( ( $eval->expression )[ $eval->cursor ] === "|" ) // || is an alias of |
-                   {
-                       $eval->cursor++;
-                   }
-                   break;
-
-               case "(":
-                   $t = "rbo";
-                   $eval->cursor++;
-                   break;
-
-               case ")":
-                   $t = "rbc";
-                   $eval->cursor++;
-                   break;
-
-               case "\0":
-                   $t = "Eof";
-                   $eval->cursor++;
-                   break;
-
-               case ",":
-                   $t = "com";
-                   $eval->cursor++;
-                   break;
-
-               case "f":
-                   if( substr( $eval->expression, $eval->cursor, 4 ) === "fact" )
-                   {
-                       $t = "Fac";
-                       $eval->cursor += 4;
-                   }
-                   else
-                   {
-                       $t = "Err";
-                   }
-                   break;
-
-               case "p":
-                   if( substr( $eval->expression, $eval->cursor, 3 ) === "pow" )
-                   {
-                       $t = "Pow";
-                       $eval->cursor += 3;
-                   }
-                   else
-                   {
-                       $t = "Err";
-                   }
-                   break;
-
-               case "s":
-                   if( substr( $eval->expression, $eval->cursor, 3 ) === "substr" )
-                   {
-                       $t = "Substr";
-                       $eval->cursor += 6;
-                   }
-                   else
-                   {
-                       $t = "Err";
-                   }
-                   break;
-
-               case "l":
-                   if( substr( $eval->expression, $eval->cursor, 3 ) === "len" )
-                   {
-                       $t = "Len";
-                       $eval->cursor += 3;
-                   }
-                   else
-                   {
-                       $t = "Err";
-                   }
-                   break;
-
-               case "t":
-                   if( substr( $eval->expression, $eval->cursor, 4 ) === "trim" )
-                   {
-                       $t = "Trim";
-                       $eval->cursor += 4;
-                   }
-                   else
-                   {
-                       $t = "Err";
-                   }
-                   break;
-
-               case "m":
-                   if( substr( $eval->expression, $eval->cursor, 3 ) === "max" )
-                   {
-                       $t = "Max";
-                       $eval->cursor += 3;
-                   }
-                   elseif( substr( $eval->expression, $eval->cursor, 3 ) === "min" )
-                   {
-                       $t = "Min";
-                       $eval->cursor += 3;
-                   }
-                   else
-                   {
-                       $t = "Err";
-                   }
-                   break;
-
-               case "a":
-                   if( substr( $eval->expression, $eval->cursor, 3 ) === "avg" )
-                   {
-                       $t = "Avg";
-                       $eval->cursor += 3;
-                   }
-                   else
-                   {
-                       $t = "Err";
-                   }
-                   break;
-
-
-               default:
-                   $t = "Err";
-                   break;
-           }
-       }
-    }
-
-    if( $t === "Err" )
+    while( true )
     {
-        $eval->error = "unexpected symbol";
+        $chr = ( $eval->expression )[ $eval->cursor ];
+        if( $chr === " " || $chr === "\n" || $chr === "\r" || $chr === "\t" )
+        {
+            $eval->cursor++;
+        }
+        else
+        {
+            break;
+        }
     }
 
-    $token = $t;
+    // value maybe
 
-    return $value;
+    $chr = ( $eval->expression )[ $eval->cursor ];
+    if( ( $chr >= "0" && $chr <= "9" ) || $chr === "\"" ) // there is no need to catch 't'rue and 'f'alse here
+    {                                               // as they are added as params [***]
+        $value = _parseValue( $eval );
+        if( $eval->error )
+        {
+            $token = "ERR";
+            return null;
+            /*--- EXIT POINT ---*/
+        }
+        else
+        {
+            $token = "Val";
+            return $value;
+            /*--- EXIT POINT ---*/
+        }
+    }
+
+    // parameter maybe
+
+    $n = $eval->paramsCnt;
+    for( $i = 0; $i < $n; $i++ )
+    {
+        if( substr( $eval->expression, $eval->cursor, $eval->paramsLen[ $i ] ) === $eval->paramsName[ $i ] )
+        {
+            $token = "Val";
+            $eval->cursor += $eval->paramsLen[ $i ];
+            return $eval->paramsVal[ $i ];
+            /*--- EXIT POINT ---*/
+        }
+    }
+
+    // operator maybe
+
+    switch( $chr )
+    {
+        case "+":
+            if( _twoConsecutivePlusTokensMaybe( $eval ) )
+            {
+                $token = "ERR"; // a subsequent + is not allowed
+            }
+            else
+            {
+                $token = "Sum";
+            }
+            break;
+
+        case "-":
+            $token = "Sub";
+            $eval->cursor++;
+            break;
+
+        case ".":
+            $token = "Conc";
+            $eval->cursor++;
+            break;
+
+        case "*":
+            $token = "Mul";
+            $eval->cursor++;
+            break;
+
+        case "/":
+            $token = "Div";
+            $eval->cursor++;
+            break;
+
+        case "^":
+            $token = "Exc";
+            $eval->cursor++;
+            break;
+
+        case "!": // if it trails a number then `Factorial` otherwise `Not`
+            $token = is_int( $leftValue ) ? "Fct" : "Not";
+            $eval->cursor++;
+            break;
+
+        case "&":
+            $token = "And";
+            $eval->cursor++;
+            if( ( $eval->expression )[ $eval->cursor ] === "&" ) // && is an alias of &
+            {
+                $eval->cursor++;
+            }
+            break;
+
+        case "|":
+            $token = "Or";
+            $eval->cursor++;
+            if( ( $eval->expression )[ $eval->cursor ] === "|" ) // || is an alias of |
+            {
+                $eval->cursor++;
+            }
+            break;
+
+        case "(":
+            $token = "RBO";
+            $eval->cursor++;
+            break;
+
+        case ")":
+            $token = "RBC";
+            $eval->cursor++;
+            break;
+
+        case "\0":
+            $token = "EOF";
+            $eval->cursor++;
+            break;
+
+        case ",":
+            $token = "COM";
+            $eval->cursor++;
+            break;
+
+        default:
+            $token = null;
+            break;
+    }
+
+    if( $token !== null )
+    {
+        return null;
+        /*--- EXIT POINT ---*/
+    }
+
+    // function maybe
+
+    foreach( $FUNCTIONS as $funtok => $name )
+    {
+        $len = strlen( $name ) ;
+        if( substr( $eval->expression, $eval->cursor, $len ) === $name )
+        {
+            $token = $funtok;
+            $eval->cursor += len;
+            return null;
+            /*--- EXIT POINT ---*/
+        }
+    }
+
+    // none of the above: raise error
+
+    $token = "ERR";
+    $eval->error = "unexpected symbol";
+    return null;
 }
 
 
@@ -1177,26 +1361,15 @@ function _parseToken( $eval,
 // Advances the cursor.
 // Always returns 0.
 
-function _twoConsecutivePlusTokensAreNotAllowed( $eval, &$token )
+function _twoConsecutivePlusTokensMaybe( $eval )
 {
-    $c = "";
-
     do
     {
         $eval->cursor++;
-        $c =  ($eval->expression)[$eval->cursor];
-    } while( $c === " " || $c === "\n" || $c === "\r" || $c === "\t" );
+        $chr = ( $eval->expression )[ $eval->cursor ];
+    } while( $chr === " " || $chr === "\n" || $chr === "\r" || $chr === "\t" );
 
-    if( $c === "+" )
-    {
-        $token = "Err";
-    }
-    else
-    {
-        $token = "Sum";
-    }
-
-    return 0;
+    return ( $chr === "+" );
 }
 
 
@@ -1211,7 +1384,7 @@ function _parseValue( $eval )
     $str = $eval->expression;
     $idx = $eval->cursor;
 
-    // Skip leading whitespace (should be already skipped beforehand)
+    // Skip leading whitespace (despite should have already been skipped previously)
 
     while( $str[ $idx ] === ' ' || $str[ $idx ] === '\t' || $str[ $idx ] === '\n' || $str[ $idx ] === '\r' )
     {
@@ -1364,7 +1537,7 @@ function _parseString( $str, &$cursor )
 
 
 
-// returns microseconds since passed value
+// returns microseconds since passed timestamp (in µs)
 // or unix epoch time
 
 function _microsecondsSince( $since = 0 )
