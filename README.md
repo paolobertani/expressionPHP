@@ -1,3 +1,49 @@
+#TL;DR
+
+```php
+<?php
+
+require_once( __DIR__ . "/../expression.php" );
+
+use function \Kalei\Expression\expression;
+
+$parameters = [
+    "a_string" => "foobar",
+    "a_int"    => 1
+];
+
+$expression = "( strlen( substr( "foo" . "BAR", 3 ) ) + 1 ) ^ 2"
+
+$result = expression( $expression,
+                      $error,         // returned by ref.
+                      $parameters,
+                      $elapsedTime ); // returned by ref. (µsecs)
+                         
+if( $result === null )
+{
+   echo "Error: $error\n";
+}
+else
+{
+    echo "$result\n"; ==> 16
+}
+
+/* step by step:
+
+( strlen( substr( "foo" . "BAR", 3 ) ) + 1 ) ^ 2
+( strlen( substr( "fooBAR,       3 ) ) + 1 ) ^ 2
+( strlen(            "BAR"           ) + 1 ) ^ 2
+(                     3                + 1 ) ^ 2
+(                     4                    ) ^ 2
+*/
+                                                  
+                                           
+
+// side note: I do code in Allman style  	    
+```
+
+---
+
 **FIRST ABONINABLE TEMPORARY README FILE GENERATED WITH DUMB CHATGPH**
 
 # Combine all parts into a single README file to ensure completeness
