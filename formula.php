@@ -84,8 +84,6 @@ if( count( get_included_files() ) === 1 )
 //
 
 const FUNCTIONS = [
-    "strpos"        => "Stp",
-    "str"           => "Str",
     "fact"          => "Fac",
     "pow"           => "Pow",
     "max"           => "Max",
@@ -95,6 +93,7 @@ const FUNCTIONS = [
     "length"        => "Len",
     "len"           => "Len",
     "strlen"        => "Len",
+    "strpos"        => "Stp",
     "trim"          => "Trm",
     "substr"        => "Sst",
     "bin2hex"       => "B2h",
@@ -104,7 +103,8 @@ const FUNCTIONS = [
     "ord"           => "Ord",
     "ltrim"         => "Ltr",
     "rtrim"         => "Rtr",
-    "sha1"          => "Sha"
+    "sha1"          => "Sha",
+    "md5"           => "Md5"
 ];
 
 
@@ -1044,7 +1044,23 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            $result = ltrim( $text );
+            if( $tokenThatCausedBreak === "COM" )
+            {
+                $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
+
+                if( ! is_string( $charsToTrim ) )
+                {
+                    $eval->error = "expected string";
+                    return null;
+                }
+
+                $result = ltrim( $text, $charsToTrim );
+            }
+            else
+            {
+                $result = ltrim( $text );
+            }
             break;
 
 
@@ -1062,7 +1078,23 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            $result = rtrim( $text );
+            if( $tokenThatCausedBreak === "COM" )
+            {
+                $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
+
+                if( ! is_string( $charsToTrim ) )
+                {
+                    $eval->error = "expected string";
+                    return null;
+                }
+
+                $result = rtrim( $text, $charsToTrim );
+            }
+            else
+            {
+                $result = rtrim( $text );
+            }
             break;
 
 

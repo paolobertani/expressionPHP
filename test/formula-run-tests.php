@@ -200,6 +200,8 @@ function RunTests()
     Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", strpos( \"fooBAR\", \"BAR\" ) + 2 )" );
     Test( __LINE__, Failure, null, "strpos( \"fooBAR BAR\", \"BAR\", 4, 1)" );
 
+    Test( __LINE__, Success, "FOObar", "\"FOO\".\"\".\"bar\"" );
+
 
     // Functions
 
@@ -210,6 +212,75 @@ function RunTests()
     Test( __LINE__, Success, bin2hex("FOO❤️\0\0\0BAR\n"), "bin2hex(\"FOO❤️\\0\\0\\0BAR\\n\")" );
     Test( __LINE__, Success, "FOO❤️\0\0\0BAR\n", "hex2bin(bin2hex(\"FOO❤️\\0\\0\\0BAR\\n\"))" );
 
+    Test( __LINE__, Success, 0, "fact(16)-16!" );
+    Test( __LINE__, Failure, null, "fac(30)" );
+    Test( __LINE__, Success, 0, "pow(4,7)-4^7" );
+    Test( __LINE__, Failure, null, "pow(2,64)" );
+    Test( __LINE__, Success, 270, "max(1,2,3,10*3^3)" );
+    Test( __LINE__, Success, 90, "min(91,92,10*3^2)" );
+    Test( __LINE__, Success, 0, "avg(1,-1)" );
+    Test( __LINE__, Success, intdiv( 33, 2 ), "avg(30,3)" );
+    Test( __LINE__, Success, 7, "len(\"foo\")+strlen(\"BAZZ\")+length(\"\")" );
+    Test( __LINE__, Success, strlen("👍"), "len(\"👍\")" );
+    Test( __LINE__, Success, trim( " booo \n\t"), "trim(\" booo \\n\\t\")   " );
+    Test( __LINE__, Success, trim( "** booo ****", "*"), "trim(\"** booo ****\", \"*\" )   " );
+
+
+    // ChatGPT generated
+
+    Test( __LINE__, Success, 6, 'strpos("Hello World", "World")' );
+    Test( __LINE__, Success, 4, 'strpos("Hello World", "o")' );
+    Test( __LINE__, Success, 0, 'strpos("Hello World", "Hello")' );
+    Test( __LINE__, Success, -1, 'strpos("Hello World", "x")' );
+    Test( __LINE__, Success, 4, 'strpos("abc abc abc", "abc", 4)' );
+    Test( __LINE__, Success, 0, 'strpos("testing", "test")' );
+    Test( __LINE__, Success, 4, 'strpos("abcdef", "ef")' );
+    Test( __LINE__, Success, 6, 'strpos("repetition", "t", 6)' );
+    Test( __LINE__, Success, 4, 'strpos("12345", "5")' );
+    Test( __LINE__, Success, 0, 'strpos("needle in haystack", "needle")' );
+    Test( __LINE__, Success, 'Hello World', 'trim("  Hello World  ")' );
+    Test( __LINE__, Success, 'Hello', 'trim("xxHelloxx", "x")' );
+    Test( __LINE__, Success, 'bcb', 'trim("abcba", "a")' );
+    Test( __LINE__, Success, 'whitespace', 'trim("   whitespace   ")' );
+    Test( __LINE__, Success, 'test', 'trim("--test--", "-")' );
+    Test( __LINE__, Success, 'number', 'trim("00number00", "0")' );
+    Test( __LINE__, Success, 'text', 'trim("xyztextyz", "xyz")' );
+    Test( __LINE__, Success, 'PHP', 'trim("  PHP  ")' );
+    Test( __LINE__, Success, 'example', 'trim("=example=", "=")' );
+    Test( __LINE__, Success, 'important', 'trim("!!important!!", "!")' );
+    Test( __LINE__, Success, 5, 'strlen("Hello")' );
+    Test( __LINE__, Success, 1, 'strlen(" ")' );
+    Test( __LINE__, Success, 10, 'strlen("1234567890")' );
+    Test( __LINE__, Success, 0, 'strlen("")' );
+    Test( __LINE__, Success, 6, 'strlen("abcdef")' );
+    Test( __LINE__, Success, 3, 'strlen("PHP")' );
+    Test( __LINE__, Success, 1, 'strlen("a")' );
+    Test( __LINE__, Success, 11, "strlen(\"multi\\n line\")" );
+    Test( __LINE__, Success, 10, 'strlen("symbols@#%")' );
+    Test( __LINE__, Success, 1, 'strlen(" ")' );
+    Test( __LINE__, Success, 'Hello', 'hex2bin("48656c6c6f")' );
+    Test( __LINE__, Success, '48656c6c6f', 'bin2hex("Hello")' );
+    Test( __LINE__, Success, 'MyS', 'hex2bin("4d7953")' );
+    Test( __LINE__, Success, '54657374', 'bin2hex("Test")' );
+    Test( __LINE__, Success, 'Foo', 'hex2bin("466f6f")' );
+    Test( __LINE__, Success, '466f6f64', 'bin2hex("Food")' );
+    Test( __LINE__, Success, 'Java', 'hex2bin("4a617661")' );
+    Test( __LINE__, Success, '4a617661', 'bin2hex("Java")' );
+    Test( __LINE__, Success, 'Node', 'hex2bin("4e6f6465")' );
+    Test( __LINE__, Success, '4e6f6465', 'bin2hex("Node")' );
+    Test( __LINE__, Success, '&lt;b&gt;bold&lt;/b&gt;', 'htmlentities("<b>bold</b>")' );
+    Test( __LINE__, Success, '&lt;script&gt;alert(1)&lt;/script&gt;', 'htmlentities("<script>alert(1)</script>")' );
+    Test( __LINE__, Success, '&amp;', 'htmlentities("&")' );
+    Test( __LINE__, Success, '5f4dcc3b5aa765d61d8327deb882cf99', 'md5("password")' );
+    Test( __LINE__, Success, '827ccb0eea8a706c4c34a16891f84e7b', 'md5("12345")' );
+    Test( __LINE__, Success, '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'sha1("password")' );
+    Test( __LINE__, Success, '8cb2237d0679ca88db6464eac60da96345513964', 'sha1("12345")' );
+    Test( __LINE__, Success, 65, 'ord("A")' );
+    Test( __LINE__, Success, 122, 'ord("z")' );
+    Test( __LINE__, Success, 'Hello', 'ltrim("   Hello")' );
+    Test( __LINE__, Success, 'Test', 'ltrim("---Test", "-")' );
+    Test( __LINE__, Success, 'Hello', 'rtrim("Hello   ")' );
+    Test( __LINE__, Success, 'Test', 'rtrim("Test---", "-")' );
 
     // All tests passed?
 
