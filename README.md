@@ -1,4 +1,4 @@
-#TL;DR
+# TL;DR
 
 ```php
 <?php
@@ -8,11 +8,12 @@ require_once( __DIR__ . "/../expression.php" );
 use function \Kalei\Expression\expression;
 
 $parameters = [
-    "a_string" => "foobar",
-    "a_int"    => 1
+    "str_1" => "foo",
+    "str_2" => "BAR",
+    "a_int" => 1
 ];
 
-$expression = "( strlen( substr( "foo" . "BAR", 3 ) ) + 1 ) ^ 2"
+$expression = "( strlen( substr( str_1 . str_2, 3 ) ) + 1 ) ^ 2"
 
 $result = expression( $expression,
                       $error,         // returned by ref.
@@ -30,7 +31,8 @@ else
 
 /* step by step:
 
-( strlen( substr( "foo" . "BAR", 3 ) ) + 1 ) ^ 2
+( strlen( substr( str_1 . str_2, 3 ) ) + 1 ) ^ 2
+( strlen( substr( "foo" . "BAR",       3 ) ) + 1 ) ^ 2
 ( strlen( substr( "fooBAR,       3 ) ) + 1 ) ^ 2
 ( strlen(            "BAR"           ) + 1 ) ^ 2
 (                     3                + 1 ) ^ 2
@@ -44,11 +46,12 @@ else
 
 ---
 
+&nbsp;
+
 **FIRST ABONINABLE TEMPORARY README FILE GENERATED WITH DUMB CHATGPH**
 
-# Combine all parts into a single README file to ensure completeness
+&nbsp;
 
-full_readme_content = f"""\
 # Expression Function Library
 
 This library provides a collection of PHP functions for string manipulation, mathematical operations, and encoding/decoding. These functions mirror PHP's native capabilities, offering a simple and powerful way to evaluate expressions dynamically.
@@ -229,12 +232,47 @@ function trim(string $str, string $characters = " \\t\\n\\r\\0\\x0B"): string {{
 ---
 
 ### 📜 License
-This project is licensed under the MIT License.
-"""
 
-# Write the full content to README.md
-full_file_path = '/mnt/data/README.md'
-with open(full_file_path, 'w') as file:
-    file.write(full_readme_content)
+```
+Copyright (c) 2024-2025 Paolo Bertani - Kalei S.r.l.
+Licensed under the FreeBSD 2-clause license
 
-full_file_path
+-------------------------------------------------------------------------------
+
+FreeBSD 2-clause license
+
+Copyright (c) 2024-2025, Paolo Bertani - Kalei S.r.l.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions  of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+2. Redistributions  in  binary  form must reproduce the above copyright notice,
+   this  list  of  conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \AS IS\ AND
+ANY  EXPRESS  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES  OF  MERCHANTABILITY  AND  FITNESS  FOR  A  PARTICULAR  PURPOSE  ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT,  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING,  BUT  NOT  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE,  DATA,  OR  PROFITS;  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON  ANY  THEORY  OF  LIABILITY,  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING  NEGLIGENCE  OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-------------------------------------------------------------------------------
+```
+
+## About me
+
+C.E.O. and Full Stack Developer at Kalei S.r.l. (based in Italy)
+
+I help commercial businesses reduce costs and improve service levels by facilitating access to product information.
+
+I’m an entrepreneur and software developer.
+
+When I’m not working => dad ❤️ freeclimber 🧗‍♂️ freediver 🌊 🥽
