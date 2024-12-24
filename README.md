@@ -1,4 +1,4 @@
-# TL;DR
+One example is worth one thousands words...
 
 ```php
 <?php
@@ -13,7 +13,7 @@ $parameters = [
     "a_int" => 1
 ];
 
-$expression = "( strlen( substr( str_1 . str_2, 3 ) ) + 1 ) ^ 2"
+$expression = "( strlen( substr( str_1 . str_2, 3 ) ) + a_int ) ^ 2"
 
 $result = expression( $expression,
                       $error,         // returned by ref.
@@ -26,17 +26,20 @@ if( $result === null )
 }
 else
 {
-    echo "$result\n"; ==> 16
+    echo "$result\n"; // ==> 16
 }
 
 /* step by step:
 
-( strlen( substr( str_1 . str_2, 3 ) ) + 1 ) ^ 2
-( strlen( substr( "foo" . "BAR",       3 ) ) + 1 ) ^ 2
-( strlen( substr( "fooBAR,       3 ) ) + 1 ) ^ 2
-( strlen(            "BAR"           ) + 1 ) ^ 2
-(                     3                + 1 ) ^ 2
-(                     4                    ) ^ 2
+( strlen( substr( str_1 . str_2, 3 ) ) + a_int ) ^ 2
+( strlen( substr( "foo" . "BAR", 3 ) ) +   1   ) ^ 2
+( strlen( substr( "fooBAR,       3 ) ) +   1   ) ^ 2
+( strlen(            "BAR"           ) +   1   ) ^ 2
+(                     3                +   1   ) ^ 2
+(                     4                        ) ^ 2
+
+4^2 = 16
+
 */
                                                   
                                            
@@ -45,6 +48,10 @@ else
 ```
 
 ---
+
+&nbsp;
+
+# TL;DR
 
 &nbsp;
 
@@ -231,6 +238,57 @@ function trim(string $str, string $characters = " \\t\\n\\r\\0\\x0B"): string {{
 
 ---
 
+
+## Contributing
+
+
+We'd love your help in making **expressionPHP* better! 🚀  
+
+### How You Can Contribute:  
+- **Report bugs** – Let us know if something isn’t working.  
+- **Request features** – Have an idea? We’d love to hear it!  
+- **Fix issues** – Check out the open issues and help solve them.  
+- **Improve documentation** – Spot a typo or something unclear? PRs welcome!
+- **Extend the project** – Implement new functions (also add tests please)
+
+---
+
+## 📋 Steps to Contribute:  
+1. **Fork the repository** (top-right of this page).  
+2. **Clone your fork**:  
+   ```bash
+   git clone https://github.com/your-username/project-name.git
+   ```
+3. **Create a new branch** for your feature or fix:  
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+4. **Make changes** and **commit**:  
+   ```bash
+   git commit -m "Add your feature"
+   ```
+5. **Push** to your fork and submit a **Pull Request**:  
+   ```bash
+   git push origin feature/your-feature
+   ```
+
+---
+
+## 💡 Need Ideas to Contribute?  
+- Check out the **Issues** tab for tasks labeled `good first issue` or `help wanted`.  
+- Join discussions in the **Discussions** tab or open a new thread.  
+
+
+## About me
+
+C.E.O. and Full Stack Developer at Kalei S.r.l. (based in Italy)
+
+I help commercial businesses reduce costs and improve service levels by facilitating access to product information.
+
+I’m an entrepreneur and software developer.
+
+When I’m not working => dad ❤️ freeclimber 🧗‍♂️ freediver 🌊 🥽
+
 ### 📜 License
 
 ```
@@ -266,13 +324,3 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -------------------------------------------------------------------------------
 ```
-
-## About me
-
-C.E.O. and Full Stack Developer at Kalei S.r.l. (based in Italy)
-
-I help commercial businesses reduce costs and improve service levels by facilitating access to product information.
-
-I’m an entrepreneur and software developer.
-
-When I’m not working => dad ❤️ freeclimber 🧗‍♂️ freediver 🌊 🥽
