@@ -1,20 +1,20 @@
 <?php
 /*
 
-formula
-version 0.2
+expressionPHP
+version 0.3
 
-discrete parser / evaluator of integers, booleans, strings,
-    string functions and integer expressions
+discrete evaluator of integers, booleans, strings,
+                      string functions and integer expressions
 
-Copyright (c) 2024 Paolo Bertani - Kalei S.r.l.
+Copyright (c) 2024-2025 Paolo Bertani - Kalei S.r.l.
 Licensed under the FreeBSD 2-clause license
 
 -------------------------------------------------------------------------------
 
 FreeBSD 2-clause license
 
-Copyright (c) 2024, Paolo Bertani - Kalei S.r.l.
+Copyright (c) 2024-2025, Paolo Bertani - Kalei S.r.l.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-namespace Kalei\Formula;
+namespace Kalei\Expression;
 
 
 
@@ -59,7 +59,7 @@ if( count( get_included_files() ) === 1 )
         exit();
     }
 
-    $result = formula( $argv[1], $error );
+    $result = expression( $argv[1], $error );
     if( $error )
     {
         echo "Error: $error\n";
@@ -113,7 +113,7 @@ const FUNCTIONS = [
 // main
 //
 
-function formula( $expression, &$error = "", $parameters = null, &$elapsedTime = null )
+function expression( $expression, &$error = "", $parameters = null, &$elapsedTime = null )
 {
     //
     // execution time measurement

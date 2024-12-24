@@ -6,11 +6,11 @@
 
 
 
-require_once( __DIR__ . "/../formula.php" );
+require_once( __DIR__ . "/../expression.php" );
 
 
 
-use function \Kalei\Formula\formula;
+use function \Kalei\Expression\expression;
 
 
 
@@ -311,7 +311,7 @@ function Test( $lineNumber, $expectedStatus, $expectedResult, $expression, $para
 
     $testCount++;
 
-    $returnedResult = formula( $expression, $error, $parameters, $elapsedTime );
+    $returnedResult = expression( $expression, $error, $parameters, $elapsedTime );
 
     $totalTime += $elapsedTime;
     $singleTime[ $lineNumber ] = $elapsedTime;
