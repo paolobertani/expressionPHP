@@ -47,38 +47,6 @@ namespace Kalei\Expression;
 
 
 
-// If the script is called directy from the CLI
-// it is evaluated the expression passed as first param
-// and result returned to stdout.
-
-if( count( get_included_files() ) === 1 )
-{
-    if( ! isset( $argv[1] ) )
-    {
-        echo "expected expression to evaluate as first (and only) parameter\n";
-        exit();
-    }
-
-    $result = expression( $argv[1], $error );
-    if( $error )
-    {
-        echo "Error: $error\n";
-    }
-    else
-    {
-        $type = gettype( $result );
-        echo "Error:  none\nType:   $type";
-        if( $type === 'boolean' )
-        {
-            $result = $result ? 'true' : 'false';
-        }
-        echo "\nResult: $result\n";
-    }
-    exit;
-}
-
-
-
 //
 // functions
 //
@@ -108,9 +76,46 @@ const FUNCTIONS = [
 ];
 
 
-
 //
 // main
+//
+
+// If the script is called directy from the CLI
+// it is evaluated the expression passed as first param
+// and result returned to stdout.
+
+function main( $argv )
+{
+    if( count( get_included_files() ) === 1 )
+    {
+        if( ! isset( $argv[1] ) )
+        {
+            echo "expected expression to evaluate as first (and only) parameter\n";
+            exit();
+        }
+
+        $result = expression( $argv[1], $error );
+        if( $error )
+        {
+            echo "Error: $error\n";
+        }
+        else
+        {
+            $type = gettype( $result );
+            echo "Error:  none\nType:   $type";
+            if( $type === 'boolean' )
+            {
+                $result = $result ? 'true' : 'false';
+            }
+            echo "\nResult: $result\n";
+        }
+        exit;
+    }
+} main( $argv);
+
+
+//
+// expression
 //
 
 function expression( $expression, &$error = "", $parameters = null, &$elapsedTime = null )
