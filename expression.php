@@ -94,10 +94,11 @@ function main( $argv )
             exit();
         }
 
+        $error = "rainbow"; // error style
         $result = expression( $argv[1], $error );
         if( $error )
         {
-            echo "Error: $error\n";
+            echo "$error\n";
         }
         else
         {
@@ -118,7 +119,7 @@ function main( $argv )
 // expression
 //
 
-function expression( $expression, &$error = "", $parameters = null, &$elapsedTime = null )
+function expression( $expression, &$error = null, $parameters = null, &$elapsedTime = null )
 {
     //
     // execution time measurement
@@ -219,17 +220,49 @@ function expression( $expression, &$error = "", $parameters = null, &$elapsedTim
     //
 
     $result = _coreParse( $eval, -1, true, false, $tokenThatCausedBreak );
+    $elapsedTime = _microsecondsSince( $startTime );
 
     if( $eval->error )
     {
-        $error = "$eval->error\n$eval->expression\n" . str_repeat( " ", $eval->cursor ) . "^---\n";
-        $elapsedTime = _microsecondsSince( $startTime );
+        switch( $error )
+        {
+            case "shortest":
+                $error = "error";
+                break;
+
+            case "short":
+                $error = "Error: {$eval->error}";
+                break;
+
+            case "extended":
+            case "multiline";
+                $error = "Error: {$eval->error}\n{$eval->expression}\n" . str_repeat( " ", $eval->cursor ) . "^---\n";
+                break;
+
+            case "rainbow":
+                $term = getenv( "TERM" );
+                $termHasColors = isset( $term ) && in_array ( $term,
+                  [ "xterm", "xterm-256color", "screen", "linux", "cygwin", "rxvt-unicode-256color" ] );
+
+                $Bred = $termHasColors ? "\033[1;31m" : "" ; // BOLD red
+                $redd = $termHasColors ?   "\033[31m" : "" ; // red
+                $yelw = $termHasColors ?   "\033[33m" : "" ; // yellow
+                $mage = $termHasColors ?   "\033[35m" : "" ; // magenta
+                $REST = $termHasColors ?    "\033[0m" : "" ; // restore
+
+                $error = "{$Bred}Error:$REST {$redd}{$eval->error}$REST\n$yelw{$eval->expression}$REST\n" . str_repeat( " ", $eval->cursor ) . "$mage^---$REST\n";
+                break;
+
+            default:
+                $error = $eval->error;
+                break;
+        }
+
         return null;
     }
     else
     {
         $error = "";
-        $elapsedTime = _microsecondsSince( $startTime );
         return $result;
     }
 }
