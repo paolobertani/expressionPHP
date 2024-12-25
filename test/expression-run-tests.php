@@ -89,23 +89,29 @@ function RunTests()
     Test( __LINE__, Success, 5,       " 2* foo - bar", [ "foo" => 3, 'bar' => 1] );
     Test( __LINE__, Failure, null,   " 2* foo - BAZ", [ "foo" => 3, 'bar' => 1] );
 
-    // Non integer single numbers
+    // Non integer single numbers, and exponent
 
-    Test( __LINE__, Failure, null,   ".2" );
-    Test( __LINE__, Failure, null,   "-.2" );
-    Test( __LINE__, Failure, null,   "12.34" );
-    Test( __LINE__, Failure, null,   "12E2" );
-    Test( __LINE__, Failure, null,   "12E-2" );
-    Test( __LINE__, Failure, null,   "12E0" );
-    Test( __LINE__, Failure, null,   "12a0" );
-    Test( __LINE__, Failure, null,   "12.e" );
-    Test( __LINE__, Failure, null,   "12e+" );
-    Test( __LINE__, Failure, null,   "1.+1" );
-    Test( __LINE__, Failure, null,   "12.e" );
-    Test( __LINE__, Failure, null,   "12.e+" );
-    Test( __LINE__, Failure, null,   "12.e1" );
-    Test( __LINE__, Failure, null,   "12E2.5");
-    Test( __LINE__, Failure, null,   ".-2" );
+    Test( __LINE__, Success, 0.2,       ".2"     );
+    Test( __LINE__, Success, -0.2,      "-.2"    );
+    Test( __LINE__, Success, 12.34,     "12.34"  );
+    Test( __LINE__, Success, (int)12E2, "12E2"   );
+    Test( __LINE__, Success, 12E-2,     "12.0E-2");
+    Test( __LINE__, Success, 12,        "12E0"   );
+    Test( __LINE__, Success, -0.2,      "-.2"    );
+    Test( __LINE__, Success, (4.0+30.0+200.0+1000.0)/10e3,    ".1234"  );
+    Test( __LINE__, Success, 0.1234,    "0.1234" );
+    Test( __LINE__, Success, 0.1234,    "+.1234" );
+    Test( __LINE__, Success, -0.123,    "-0.123" );
+    Test( __LINE__, Failure, null,      ".-2"    );
+    Test( __LINE__, Failure, null,      "12E-2"  );
+    Test( __LINE__, Failure, null,      "12.e"   );
+    Test( __LINE__, Failure, null,      "12a0"   );
+    Test( __LINE__, Failure, null,      "12e+"   );
+    Test( __LINE__, Failure, null,      "1.+1"   );
+    Test( __LINE__, Failure, null,      "12.e"   );
+    Test( __LINE__, Failure, null,      "12.e+"  );
+    Test( __LINE__, Failure, null,      "12.e1"  );
+    Test( __LINE__, Failure, null,      "12E2.5" );
 
     // Round brackets
 
@@ -199,8 +205,8 @@ function RunTests()
     Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 3, 3 )" );
     Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", -3, 3 )" );
     Test( __LINE__, Success, "ooBAR","substr( \"fooBAR\", 1, 100 )" );
-    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 1+1+1, 6/2 )" );
-    Test( __LINE__, Success, "BAR",  "substr( \"foo\" . \"BAR\", 1+1+1, 6/2 )" );
+    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 1+1+1, 6//2 )" );
+    Test( __LINE__, Success, "BAR",  "substr( \"foo\" + \"BAR\", 1+1+1, 6//2 )" );
 
     Test( __LINE__, Success, "BAR",  "trim( \"   BAR  \\t\\n\\r\" )" );
     Test( __LINE__, Success, "BAR",  "trim( \"****BAR==*==\", \"*=\" )" );
@@ -211,7 +217,7 @@ function RunTests()
     Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", strpos( \"fooBAR\", \"BAR\" ) + 2 )" );
     Test( __LINE__, Failure, null, "strpos( \"fooBAR BAR\", \"BAR\", 4, 1)" );
 
-    Test( __LINE__, Success, "FOObar", "\"FOO\".\"\".\"bar\"" );
+    Test( __LINE__, Success, "FOObar", "\"FOO\"+\"\"+\"bar\"" );
 
 
     // Functions
@@ -322,7 +328,9 @@ function Test( $lineNumber, $expectedStatus, $expectedResult, $expression, $para
 
     $testCount++;
 
-    $returnedResult = expression( $expression, $error, $parameters, $elapsedTime );
+    $inStyleOutError = "rainbow";
+
+    $returnedResult = expression( $expression, $inStyleOutError, $parameters, $elapsedTime );
 
     $totalTime += $elapsedTime;
     $singleTime[ $lineNumber ] = $elapsedTime;
@@ -334,6 +342,13 @@ function Test( $lineNumber, $expectedStatus, $expectedResult, $expression, $para
     else
     {
         $returnedStatus = Success;
+    }
+
+    // floats are compared after separing exponent from mantissa to avoid issues due to double limited precision
+
+    if( $returnedStatus === $expectedStatus && is_float( $returnedResult ) && is_float( $expectedResult ) && abs( $returnedResult - $expectedResult ) < 10e-6 )
+    {
+        return;
     }
 
     if( $returnedStatus === $expectedStatus && $returnedResult === $expectedResult )
@@ -369,7 +384,7 @@ function Test( $lineNumber, $expectedStatus, $expectedResult, $expression, $para
     echo "Returned type is:    " . gettype( $returnedResult ) . "\n";
     echo "\n";
 
-    if( $returnedStatus === Failure ) { echo "Error reported is:   $error\n"; }
+    if( $returnedStatus === Failure ) { echo "$inStyleOutError\n"; }
 
     echo "\n";
 
