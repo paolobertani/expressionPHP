@@ -439,18 +439,6 @@ function _coreParse( $eval,
                 return null;
             }
         }
-        elseif( $leftToken === "Conc" )
-        {
-            if( is_string( $value ) && is_string( $result ) )
-            {
-                $result = $result . $value;
-            }
-            else
-            {
-                $eval->error = "left and right operands must be strings";
-                return null;
-            }
-        }
         elseif( $leftToken === "Or" )
         {
             if( is_bool( $value ) && is_bool( $result ) )
@@ -464,7 +452,7 @@ function _coreParse( $eval,
             }
         }
     }
-    while( $rightToken === "Sum" || $rightToken === "Sub" || $rightToken === "Conc" || $rightToken === "Or" );
+    while( $rightToken === "Sum" || $rightToken === "Sub" || $rightToken === "Or" );
 
     // A round close bracket:
     // check for negative count.
@@ -1445,11 +1433,6 @@ function _parseToken( $eval,
 
         case "-":
             $token = "Sub";
-            $eval->cursor++;
-            break;
-
-        case ".":
-            $token = "Conc";
             $eval->cursor++;
             break;
 
