@@ -104,11 +104,11 @@ function main( $argv )
             exit();
         }
 
-        $error = "rainbow"; // error message style
-        $result = expression( $argv[1], $error );
-        if( $error )
+        $inStyleOutError = "rainbow"; // error message style
+        $result = expression( $argv[1], $inStyleOutError );
+        if( $inStyleOutError )
         {
-            echo "$error\n";
+            echo "$inStyleOutError\n";
         }
         else
         {
@@ -139,7 +139,6 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
     //
 
     $startTime = _microsecondsSince();
-
 
     //
     // initialize
