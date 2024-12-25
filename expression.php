@@ -2,9 +2,9 @@
 /*
 
 expressionPHP
-version 0.3
+version 0.4
 
-discrete evaluator of integers, booleans, strings,
+discrete evaluator of integers, floats, booleans, strings,
                       string functions and integer expressions
 
 Copyright (c) 2024-2025 Paolo Bertani - Kalei S.r.l.
@@ -43,6 +43,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
+/*
+
+    +++ things to do
+    ??? things I'm not sure about / design decisions to kale
+
+*/
+
+
+
 namespace Kalei\Expression;
 
 
@@ -76,6 +85,7 @@ const FUNCTIONS = [
 ];
 
 
+
 //
 // main
 //
@@ -94,7 +104,7 @@ function main( $argv )
             exit();
         }
 
-        $error = "rainbow"; // error style
+        $error = "rainbow"; // error message style
         $result = expression( $argv[1], $error );
         if( $error )
         {
@@ -103,16 +113,19 @@ function main( $argv )
         else
         {
             $type = gettype( $result );
-            echo "Error:  none\nType:   $type";
+            if( $type === "double" ) $type = "64 bit float";
+            if( $type === "integer") $type = "64 bit signed integer";
+            echo "Error:  none\nType:   $type\n";
             if( $type === 'boolean' )
             {
                 $result = $result ? 'true' : 'false';
             }
-            echo "\nResult: $result\n";
+            echo "Result: $result\n";
         }
         exit;
     }
-} main( $argv);
+} main( $argv );
+
 
 
 //
@@ -128,99 +141,177 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
     $startTime = _microsecondsSince();
 
 
-
     //
-    // parameters check and storing
-    //
-
-    if( ! is_string( $expression ) )
-    {
-        throw new \Exception( "expression must be string" );
-    }
-
-    if( $parameters === null )
-    {
-        $parameters = [];
-    }
-    else
-    {
-        foreach( $parameters as $name => $value )
-        {
-            if( ! is_string( $name ) )
-            {
-                throw new \Exception( "parameter name must be a string" );
-            }
-
-            if( ! ctype_alnum( $name ) )
-            {
-                throw new \Exception( "parameter name must be an alphanumeric string" );
-            }
-
-            if( ctype_digit( substr( $name, 0, 1 ) ) )
-            {
-                throw new \Exception( "parameter name must not begin with a digit" );
-            }
-
-            if( ! is_int( $value ) && ! is_string( $value ) && ! is_bool( $value ) )
-            {
-                throw new \Exception( "parameter value must be a integer, boolean or string" );
-            }
-
-            if( array_key_exists( $name, FUNCTIONS ) !== false )
-            {
-                throw new \Exception( "parameter name must not be a reserved keyword: $name" );
-            }
-        }
-    }
-
-    // `true` and `false` are added as parameters to improve speed parsing here --> [***]
-
-    $parameters[ 'true' ] = true;
-    $parameters[ 'false'] = false;
-
-    uksort( $parameters, function ( $key1, $key2 )
-    {
-        return strlen( $key2 ) - strlen( $key1 );
-    } );
-
-    // store params for fastest parsing
-
-    $paramsName = [];
-    $paramsVal  = [];
-    $paramsLen  = [];
-
-    foreach( $parameters as $name => $value )
-    {
-        $paramsName[] = $name;
-        $paramsVal[]  = $value;
-        $paramsLen[]  = strlen( $name );
-    }
-
-    $paramsCnt = count( $parameters );
-
-    //
-    // main
+    // initialize
     //
 
     $eval = new \StdClass();
     $eval->expression  = $expression . "\0\0\0\0";
-    // the parser will always met a 0x00 at the end
-
-    $eval->paramsName  = $paramsName;
-    $eval->paramsVal   = $paramsVal;
-    $eval->paramsLen   = $paramsLen;
-    $eval->paramsCnt   = $paramsCnt;
+    // The parser, in any case (also when skipping
+    // characters) will always met a 0x00 if the
+    // end of the expression is met. A bunch
+    // of 0x00 ensures this.
 
     $eval->cursor = 0;
     $eval->RBC    = 0; // Round Brackets Count
     $eval->error  = "";
 
+
+
     //
-    // begin
+    // check expression's parameter type
     //
 
-    $result = _coreParse( $eval, -1, true, false, $tokenThatCausedBreak );
-    $elapsedTime = _microsecondsSince( $startTime );
+    if( $eval->error === "" )
+    {
+        if( ! is_string( $eval->expression ) )
+        {
+            $eval->error = "expression must be string";
+            $eval->expression = "[ " . gettype( $eval->expression ) . " ] given!";
+            $eval->cursor = -1;
+        }
+    }
+
+
+
+    //
+    // `$parameters` parameter checking and storing
+    //
+
+    if( $eval->error === "" )
+    {
+        if( $parameters === null )
+        {
+            $parameters = [];
+        }
+        else
+        {
+            $paramIdx = 0;
+            foreach( $parameters as $name => $value )
+            {
+                $paramIdx++;
+                $nameCheck = $name;
+
+                if( $eval->error === "" )
+                {
+                    if( ! is_string( $nameCheck ) )
+                    {
+                        $eval->error = "parameter name must be string (param. nr. $paramIdx)";
+                        $eval->expression = "[ " . gettype( $nameCheck ) . " ] given!";
+                        $eval->cursor = -1;
+                    }
+                }
+
+                if( $eval->error === "" )
+                {
+                    if( substr( $nameCheck, 0, 1 ) === "$" ) // `$` is allowed as 1st char (php style)
+                    {
+                        $nameCheck = substr( $nameCheck, 1 );
+                    }
+
+                    if( strpos( "$", $nameCheck ) !== false )
+                    {
+                        $eval->error = "dolar sign `$` may eventually be only the first character (param. nr. $paramIdx)";
+                        $eval->expression = "$name";
+                        $eval->cursor = -1;
+                    }
+                }
+
+                if( $eval->error === "" )
+                {
+                    $nameCheck = str_replace( "_", "X", $nameCheck );
+
+                    if( ! ctype_alnum( $nameCheck ) )
+                    {
+                        $eval->error = "parameter name may contain letters, digits or underscores (param. nr. $paramIdx)";
+                        $eval->expression = "$name";
+                        $eval->cursor = -1;
+                    }
+                }
+
+                if( $eval->error === "" )
+                {
+                    if( ctype_digit( substr( $name, 0, 1 ) ) )
+                    {
+                        $eval->error = "parameter name must not begin with a digit (param. nr. $paramIdx)";
+                        $eval->expression = "$name";
+                        $eval->cursor = -1;
+                    }
+                }
+
+                if( $eval->error === "" )
+                {
+                    if( ! is_int( $value ) && ! is_string( $value ) && ! is_bool( $value ) && ! is_float ( $value ) )
+                    {
+                        $eval->error = "parameter value must be integer, float, boolean or string (param. nr. $paramIdx)";
+                        $eval->expression = "$name : [ " . gettype( $value ) . " ] given!";
+                        $eval->cursor = -1;
+                    }
+                }
+
+                if( $eval->error === "" )
+                {
+                    if( array_key_exists( $name, FUNCTIONS ) !== false )
+                    {
+                        $eval->error = "parameter name must not be a reserved keyword (param. nr. $paramIdx)";
+                        $eval->expression = "$name : used";
+                        $eval->cursor = -1;
+                    }
+                }
+            }
+        }
+    }
+
+    if( $eval->error === "" )
+    {
+        // `true` and `false` are added as parameters to improve speed parsing here --> [***]
+
+        $parameters[ 'true' ] = true;
+        $parameters[ 'false'] = false;
+
+        uksort( $parameters, function ( $key1, $key2 )
+        {
+            return strlen( $key2 ) - strlen( $key1 );
+        } );
+
+        // optimization in params storing
+
+        $paramsName = [];
+        $paramsVal  = [];
+        $paramsLen  = [];
+
+        foreach( $parameters as $name => $value )
+        {
+            $paramsName[] = $name;
+            $paramsVal[]  = $value;
+            $paramsLen[]  = strlen( $name );
+        }
+
+        $paramsCnt = count( $parameters );
+
+        $eval->paramsName  = $paramsName;
+        $eval->paramsVal   = $paramsVal;
+        $eval->paramsLen   = $paramsLen;
+        $eval->paramsCnt   = $paramsCnt;
+    }
+
+
+
+    //
+    // do it
+    //
+
+    if( $eval->error === "" )
+    {
+        $result = _coreParse( $eval, -1, true, false, $tokenThatCausedBreak );
+    }
+
+
+
+    //
+    // got error?
+    //
+
 
     if( $eval->error )
     {
@@ -235,11 +326,13 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
                 break;
 
             case "extended":
-            case "multiline";
-                $error = "Error: {$eval->error}\n{$eval->expression}\n" . str_repeat( " ", $eval->cursor ) . "^---\n";
+            case "multiline":
+                $error = "Error: {$eval->error}\n{$eval->expression}\n";
+                if( $eval->cursor >= 0 ) $error .= str_repeat( " ", $eval->cursor ) . "^---\n";
                 break;
 
             case "rainbow":
+            case "multicolor":
                 $term = getenv( "TERM" );
                 $termHasColors = isset( $term ) && in_array ( $term,
                   [ "xterm", "xterm-256color", "screen", "linux", "cygwin", "rxvt-unicode-256color" ] );
@@ -250,7 +343,8 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
                 $mage = $termHasColors ?   "\033[35m" : "" ; // magenta
                 $REST = $termHasColors ?    "\033[0m" : "" ; // restore
 
-                $error = "{$Bred}Error:$REST {$redd}{$eval->error}$REST\n$yelw{$eval->expression}$REST\n" . str_repeat( " ", $eval->cursor ) . "$mage^---$REST\n";
+                $error = "{$Bred}Error:$REST {$redd}{$eval->error}$REST\n$yelw{$eval->expression}$REST\n";
+                if( $eval->cursor >= 0 ) $error .= str_repeat( " ", $eval->cursor ) . "$mage^---$REST\n";
                 break;
 
             default:
@@ -293,10 +387,6 @@ function _coreParse( $eval,
                      $breakOnCOMMA,                 // exit if a comma is met;
                     &$tokenThatCausedBreak = null )  // if not null the token/symbol that caused the function to exit;
 {
-    $leftToken = null;
-    $rightToken =null;
-
-    $value = 0;
     $result = null;
     $rightToken = "Sum";
 
@@ -313,7 +403,7 @@ function _coreParse( $eval,
 
         /**/if( $leftToken === "Sum" )
         {
-            if( $result === null )
+            /**/if( $result === null )
             {
                 $result = $value;
             }
@@ -321,21 +411,29 @@ function _coreParse( $eval,
             {
                 $result = $result + $value;
             }
+            elseif( is_float( $value ) && is_float( $result ) )
+            {
+                $result = $result + $value;
+            }
             else
             {
-                $eval->error = "left and right addends must be integers";
+                $eval->error = "left and right addends must be both integers or both float";
                 return null;
             }
         }
         elseif( $leftToken === "Sub" )
         {
-            if( is_int( $value ) && is_int( $result ) )
+            /**/if( is_int( $value ) && is_int( $result ) )
+            {
+                $result = $result - $value;
+            }
+            elseif( is_float( $value ) && is_float( $result ) )
             {
                 $result = $result - $value;
             }
             else
             {
-                $eval->error = "left and right operands must be integers";
+                $eval->error = "left and right operands must be both integers or both float";
                 return null;
             }
         }
@@ -551,13 +649,13 @@ function _coreParseHigher( $eval,
         // multiplication/division is finally
         // calculated
 
-        if( $op === "Mul" )
+        /**/if( $op === "Mul" )
         {
             if( $leftValue === null )
             {
-                if( $sign === -1 && ! is_int( $rightValue ) )
+                if( $sign === -1 && ! is_int( $rightValue ) && ! is_float( $rightValue ) )
                 {
-                    $eval->error = "unary minus before non integer value";
+                    $eval->error = "unary minus before non integer nor float value";
                     return null;
                 }
                 if( $not === 1 && ! is_bool( $rightValue ) )
@@ -566,7 +664,7 @@ function _coreParseHigher( $eval,
                     return null;
                 }
 
-                if( is_int( $rightValue ) )
+                /**/if( is_int( $rightValue ) || is_float( $rightValue ) )
                 {
                     $leftValue = $rightValue * $sign;
                 }
@@ -583,6 +681,22 @@ function _coreParseHigher( $eval,
             {
                 $leftValue = $leftValue * $rightValue * $sign;
             }
+            elseif( is_float( $leftValue ) && is_float( $rightValue ) )
+            {
+                $leftValue = $leftValue * $rightValue * $sign;
+            }
+            else
+            {
+                $eval->error = "left and right operands must be both integers or float";
+                return null;
+            }
+        }
+        elseif( $op === "Idv" )
+        {
+            if( is_int( $leftValue ) && is_int( $rightValue ) )
+            {
+                $leftValue = intdiv( $leftValue, $rightValue ) * $sign;
+            }
             else
             {
                 $eval->error = "left and right operands must be integers";
@@ -591,17 +705,16 @@ function _coreParseHigher( $eval,
         }
         elseif( $op === "Div" )
         {
-            if( is_int( $leftValue ) && is_int( $rightValue ) )
+            if( is_float( $leftValue ) && is_float( $rightValue ) )
             {
-                $leftValue = intdiv( $leftValue, $rightValue ) * $sign;
-
+                $leftValue = $leftValue / $rightValue * $sign;
             }
             else
             {
-                $eval->error = "left and right operands must be integers";
+                $eval->error = "left and right operands must be float";
+                if( is_int( $leftValue ) && is_int( $rightValue ) ) $eval->error .= "; use `//` for integer division";
                 return null;
             }
-
         }
         elseif( $op === "And" )
         {
@@ -631,7 +744,7 @@ function _coreParseHigher( $eval,
         // ...unless an exponent is evaluated
         // (because exponentiation ^ operator have higher precedence)
     }
-    while( ( $op === "Mul" || $op === "Div" || $op === "And" ) && ! $isExponent );
+    while( ( $op === "Mul" || $op === "Idv" || $op === "Div" || $op === "And" ) && ! $isExponent );
 
     $leftOp = $op;
 
@@ -692,32 +805,34 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Pow":
+        case "Pow": // ??? Allow mixing integers and float and unpredictable result type?
             $base = _coreParse( $eval, -1, false, true );
             if( $eval->error ) return null;
 
-            if( ! is_int( $base ) )
+            if( ! is_int( $base ) && ! is_float( $base ))
             {
-                $eval->error = "expected integer";
+                $eval->error = "expected integer or float";
                 return null;
             }
 
             $exponent = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return null;
 
-            if( ! is_int( $exponent ) )
+            if( ! is_int( $exponent ) && ! is_float( $exponent ))
             {
-                $eval->error = "expected integer";
+                $eval->error = "expected integer or float";
                 return null;
             }
+
+            if( gettype( $base ) !== gettype( $exponent ) )
 
             $result = pow( $base, $exponent );
 
-            if( ! is_int( $result ) )
+            if( is_float( $base ) || is_float( $exponent ) )
             {
-                $eval->error = "result is not integer";
-                return null;
+                $result = floatval( $result );
             }
+
             break;
 
 
@@ -726,9 +841,9 @@ function _evaluateFunction( $eval, $func )
             $greatestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
-            if( ! is_int( $greatestValue ) )
+            if( ! is_int( $greatestValue ) && ! is_float( $greatestValue ) )
             {
-                $eval->error = "expected integer";
+                $eval->error = "expected integer or float";
                 return null;
             }
 
@@ -737,9 +852,9 @@ function _evaluateFunction( $eval, $func )
                 $greaterValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
-                if( ! is_int( $greaterValueMaybe ) )
+                if( gettype( $greaterValueMaybe ) !== gettype( $greatestValue ) )
                 {
-                    $eval->error = "expected integer";
+                    $eval->error = "values must be all integers or all floats";
                     return null;
                 }
 
@@ -757,9 +872,9 @@ function _evaluateFunction( $eval, $func )
             $smallestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
-            if( ! is_int( $smallestValue ) )
+            if( ! is_int( $smallestValue ) && ! is_float( $smallestValue ) )
             {
-                $eval->error = "expected integers";
+                $eval->error = "expected integer or float";
                 return null;
             }
 
@@ -768,9 +883,9 @@ function _evaluateFunction( $eval, $func )
                 $smallerValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
-                if( ! is_int( $smallerValueMaybe ) )
+                if( gettype( $smallerValueMaybe ) !== gettype( $smallestValue ) )
                 {
-                    $eval->error = "expected integers";
+                    $eval->error = "values must be all integers or all floats";
                     return null;
                 }
 
@@ -788,9 +903,9 @@ function _evaluateFunction( $eval, $func )
             $total = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
-            if( ! is_int( $total ) )
+            if( ! is_int( $total ) && ! is_float( $total ) )
             {
-                $eval->error = "expected integers";
+                $eval->error = "expected integer or float";
                 return null;
             }
 
@@ -800,9 +915,9 @@ function _evaluateFunction( $eval, $func )
                 $value = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
-                if( ! is_int( $value ) )
+                if( gettype( $value ) !== gettype( $total ) )
                 {
-                    $eval->error = "expected integers";
+                    $eval->error = "values must be all integers or all floats";
                     return null;
                 }
 
@@ -810,7 +925,7 @@ function _evaluateFunction( $eval, $func )
                 $count++;
             }
 
-            $result = intdiv( $total, $count );
+            $result = is_int( $total ) ? intdiv( $total, $count ) : $total / $count;
             break;
 
 
@@ -1167,6 +1282,8 @@ function _evaluateFunction( $eval, $func )
 
 // Evaluates an exponentiation.
 
+// ??? Allow mixing integers and float and unpredictable result type?
+
 function _evaluateExponentiation( $eval,
                                   $base,      // The base has already been fetched;
                                  &$rightOp )  // RETURN: the token (operator) that follows.
@@ -1174,36 +1291,34 @@ function _evaluateExponentiation( $eval,
     $exponent = 0;
     $result = 0;
 
-    if( ! is_int( $base ) )
+    if( ! is_int( $base ) && ! is_float( $base ) )
     {
-        $eval->error = "base must be integer";
+        $eval->error = "base must be integer or floar";
         return null;
     }
 
     $exponent = _coreParseHigher( $eval, 1, "Mul", true, $rightOp );
     if( $eval->error ) return null;
 
-    if( ! is_int( $exponent) )
+    if( ! is_int( $exponent ) && ! is_float( $exponent ) )
     {
-        $eval->error = "exponent must be integer";
-        return null;
-    }
-
-    if( $exponent < 0 )
-    {
-        $eval->error = "exponent must be zero or positive";
+        $eval->error = "exponent must be integer or float";
         return null;
     }
 
     $result = pow( $base, $exponent );
 
-    if( $result >= 9223372036854775808 /* -2^63 */ || $result <= -9223372036854775808 /* -2^63 */ )
-    {
-        $eval->error = "exponentiation result exceeds integer limit";
-        return null;
-    }
+    // // base and exponent integers with expected integer result
+    //
+    // if( $result >= 9223372036854775808 /* -2^63 */ || $result <= -9223372036854775808 /* -2^63 */ )
+    // {
+    //     $eval->error = "exponentiation result exceeds integer limit";
+    //     return null;
+    // }
+    //
+    // return intval( $result );
 
-    return intval( $result );
+    return $result;
 }
 
 
@@ -1228,9 +1343,9 @@ function _parseFactorial( $eval,
         return null;
     }
 
-    if( $value > 20 )
+    if( $value > 170 )
     {
-        $eval->error = "factorial result exceeds integer limit";
+        $eval->error = "factorial result exceeds both integer and float limit";
         return null;
     }
 
@@ -1238,6 +1353,11 @@ function _parseFactorial( $eval,
     for( $i = 1; $i <= $value; $i++ )
     {
         $result *= $i;
+    }
+
+    if( $value <= 20 ) // fits integers
+    {
+        $result = intval( $result );
     }
 
     _parseToken( $eval, $rightOp, $value );
@@ -1274,7 +1394,8 @@ function _parseToken( $eval,
     // value maybe
 
     $chr = ( $eval->expression )[ $eval->cursor ];
-    if( ( $chr >= "0" && $chr <= "9" ) || $chr === "\"" ) // there is no need to catch 't'rue and 'f'alse here
+    if( ( $chr >= "0"   && $chr <= "9"  )
+       || $chr === "\"" || $chr === "." ) // there is no need to catch 't'rue and 'f'alse here
     {                                               // as they are added as params [***]
         $value = _parseValue( $eval );
         if( $eval->error )
@@ -1338,6 +1459,12 @@ function _parseToken( $eval,
         case "/":
             $token = "Div";
             $eval->cursor++;
+
+            if( ( $eval->expression )[ $eval->cursor ] === "/" )
+            {
+                $token = "Idv";
+                $eval->cursor++;
+            }
             break;
 
         case "^":
@@ -1449,7 +1576,7 @@ function _twoConsecutivePlusTokensMaybe( $eval )
 function _parseValue( $eval )
 {
     $result = null;
-    $str = $eval->expression;
+    $str = $eval->expression; // copy-on-write is avoided
     $idx = $eval->cursor;
 
     // Skip leading whitespace (despite should have already been skipped previously)
@@ -1488,7 +1615,9 @@ function _parseValue( $eval )
         return $result;
     }
 
-    // It is an integer: parse it
+    // Last chanche: a integer or a float
+
+    // +++ Parse a hex value too?
 
     $isnum = false; // Will be set to true as a number is detected
 
@@ -1503,21 +1632,114 @@ function _parseValue( $eval )
         $idx++;
     }
 
-    // Parse the integer part
+    $isfloat = false;
+
+    // Parse the integer part maybe
 
     $integer_part = 0;
-    while( $str[ $idx ] >= '0' && $str[ $idx ] <= '9' )
+    while( $str[ $idx ] >= '0' && $str[ $idx ] <= '9' && $str[ $idx ] !== "." )
     {
         $integer_part = $integer_part * 10 + (int)$str[ $idx ];
         $idx++;
         $isnum = true;
     }
 
+    // Parse the float part maybe
+
+    if( $str[ $idx ] === "." )
+    {
+        $idx++;
+        $isfloat = true;
+        $decimal_part = 0;
+
+        $decimal_digits = 0;
+        while( $str[ $idx ] >= '0' && $str[ $idx ] <= '9' )
+        {
+            $isnum = true;
+            $decimal_digits++;
+            $decimal_part = ( $decimal_part * 10 ) + intval( $str[ $idx ] );
+            $idx++;
+        }
+
+        if( $decimal_digits === 0 )
+        {
+            $isnum = false;
+            $result = null;
+        }
+        else
+        {
+            $isnum = true;
+        }
+    }
+
+    // parse the exponent part maybe
+
+    $exp = 0;
+    $expisnum = true;
+    $expsign = 1;
+
+    if( $isnum )
+    {
+        if( $str[ $idx ] === 'e' || $str[ $idx ] === 'E' )
+        {
+            $idx++;
+            $expisnum = false; // Will be set to true as a number is detected
+
+            $expsign = 1;
+            if( $str[ $idx ] === '-' )
+            {
+                $expsign = -1;
+                $idx++;
+            }
+            elseif( $str[ $idx ] === '+' )
+            {
+                $idx++;
+            }
+
+            // Parse the exp integer part
+
+            while( $str[ $idx ] >= '0' && $str[ $idx ] <= '9')
+            {
+                $exp = $exp * 10 + (int)$str[ $idx ];
+                $idx++;
+                $expisnum = true;
+            }
+        }
+    }
+
     // Done
 
-    if( $isnum ) // parsing succeeded
+    if( $isnum && $expisnum ) // parsing succeeded
     {
-        $result = $sign * $integer_part;
+        if( $isfloat )
+        {
+            $result = floatval( ( $sign * $integer_part + $decimal_part * pow( 10, -$decimal_digits ) ) * pow( 10, $expsign * $exp ) );
+        }
+        else
+        {
+            if( $expsign * $exp )
+            {
+                $eval->error = "integer with negative exponent, append `.0` to enter a float";
+                $isnum = false;
+                $result = null;
+            }
+            else
+            {
+                $result = $sign * $integer_part * pow( 10, $exp );
+
+                if( $result >= 9223372036854775808 /* +2^63 */ || $result <= -9223372036854775808 /* -2^63 */ )
+                {
+                    $eval->error = "integer exceeding integers limit, append `.0` to enter a float";
+                    $isnum = false;
+                    $result = null;
+                }
+            }
+        }
+    }
+    else
+    {
+        $eval->error = "malformed value";
+        $result = null;
     }
 
     $eval->cursor = $idx;
