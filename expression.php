@@ -817,15 +817,8 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( gettype( $base ) !== gettype( $exponent ) )
-
-            $result = pow( $base, $exponent );
-
-            if( is_float( $base ) || is_float( $exponent ) )
-            {
-                $result = floatval( $result );
-            }
-
+            $result = _evaluatePow( $eval, $base, $exponent );
+            if( $result === null ) return null;
             break;
 
 
@@ -1299,17 +1292,46 @@ function _evaluateExponentiation( $eval,
         return null;
     }
 
+    $result = _evaluatePow( $eval, $base, $exponent );
+
+    return $result;
+}
+
+
+function _evaluatePow( $eval, $base, $exponent )
+{
+    if( is_float( $base ) && is_float( $exponent ) )
+    {
+        $result = pow( $base, $exponent );
+
+        if( is_nan( $result ) )
+        {
+            $eval->error = "exponentiation results in a complex number";
+            return null;
+        }
+
+        return $result;
+    }
+
+    if( gettype( $base ) !== gettype( $exponent ) )
+    {
+        $eval->error = "base and exponent must be both floats or integers";
+        return null;
+    }
+
     $result = pow( $base, $exponent );
 
-    // // base and exponent integers with expected integer result
-    //
-    // if( $result >= 9223372036854775808 /* -2^63 */ || $result <= -9223372036854775808 /* -2^63 */ )
-    // {
-    //     $eval->error = "exponentiation result exceeds integer limit";
-    //     return null;
-    // }
-    //
-    // return intval( $result );
+    if( is_nan( $result ) )
+    {
+        $eval->error = "exponentiation results in a complex number";
+        return null;
+    }
+
+    if( ! is_int( $result ) )
+    {
+        $eval->error = "exponentiation doesn't fit an integer value";
+        return null;
+    }
 
     return $result;
 }
