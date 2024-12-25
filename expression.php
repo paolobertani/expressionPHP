@@ -417,9 +417,13 @@ function _coreParse( $eval,
             {
                 $result = $result + $value;
             }
+            elseif( is_string( $value ) && is_string( $result ) )
+            {
+                $result = $result . $value;
+            }
             else
             {
-                $eval->error = "left and right addends must be both integers or both float";
+                $eval->error = "left and right addends must be both integers, floats or strings";
                 return null;
             }
         }
