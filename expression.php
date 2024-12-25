@@ -352,11 +352,13 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
                 break;
         }
 
+        $elapsedTime = _microsecondsSince( $startTime );
         return null;
     }
     else
     {
         $error = "";
+        $elapsedTime = _microsecondsSince( $startTime );
         return $result;
     }
 }
