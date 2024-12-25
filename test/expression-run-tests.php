@@ -51,6 +51,17 @@ function RunTests()
 
     $fails = 0;
 
+    // Parameters
+
+    Test( __LINE__, Success, 1,       "foo", [ "foo" => 1    ] );
+    Test( __LINE__, Success, 1.0,     "foo", [ "foo" => 1.0  ] );
+    Test( __LINE__, Success, 0.0,     "foo", [ "foo" => 0.0  ] );
+    Test( __LINE__, Success, "A",     "foo", [ "foo" => "A"  ] );
+    Test( __LINE__, Success, true,    "foo", [ "foo" => true ] );
+
+
+
+
     // Integers expressions
 
     Test( __LINE__, Success, 2,       "+2" );         // plus as unary operator
