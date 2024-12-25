@@ -1717,7 +1717,7 @@ function _parseValue( $eval )
         }
         else
         {
-            if( $expsign * $exp )
+            if( $expsign === -1 )
             {
                 $eval->error = "integer with negative exponent, append `.0` to enter a float";
                 $isnum = false;
