@@ -1,7 +1,7 @@
 <?php
-/*
-
+                                                                             /*
 expressionPHP
+
 version 0.4
 
 discrete evaluator of integers, floats, booleans, strings,
@@ -39,16 +39,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -------------------------------------------------------------------------------
 
-*/
-
-
-
-/*
 
     +++ things to do
-    ??? things I'm not sure about / design decisions to kale
+    ??? design decisions to take
 
-*/
+
+                                                                             */
 
 
 
@@ -86,13 +82,14 @@ const FUNCTIONS = [
 
 
 
-//
-// main
-//
+/*     <MAIN>
 
-// If the script is called directy from the CLI
-// it is evaluated the expression passed as first param
-// and result returned to stdout.
+   This gets executed if `expression.php` is called
+   in the terminal.
+
+   If the script is called directy from the CLI
+   it is evaluated the expression passed as first param
+   and result returned to stdout. */
 
 function main( $argv )
 {
@@ -128,9 +125,7 @@ function main( $argv )
 
 
 
-//
-// expression
-//
+// ENTRY POINT: MAIN API FUNCTION `expression()`
 
 function expression( $expression, &$error = null, $parameters = null, &$elapsedTime = null )
 {
@@ -364,23 +359,25 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
 
 
 
-//
-// private functions
-//
+/*********************
+ * PRIVATE FUNCTIONS *
+ *********************/
 
 
 
-// Parses and evaluates expression parts between lower precedence operators:
-// `+` sum
-// `-` subtraction
-// `.` string concatenation
-// `|` logical OR
-// and
-// `)` closed round bracked (decrementing count)
-// breakOnRBC, breakOnEOF, breakOnCOMMA define cases where the function must return
-// The function is going to be called recursively
-// The function calls `_coreParseHiger()` to parse parts between higher
-// precedence operators.
+/*     `_coreParse()`
+
+   Parses and evaluates expression parts between lower precedence operators:
+   `+` sum
+   `-` subtraction
+   `.` string concatenation
+   `|` logical OR
+   and
+   `)` closed round bracked (decrementing count)
+   breakOnRBC, breakOnEOF, breakOnCOMMA define cases where the function must return
+   The function is going to be called recursively
+   The function calls `_coreParseHiger()` to parse parts between higher
+   precedence operators. */
 
 function _coreParse( $eval,
                      $breakOnRBC,                   // If open brackets count goes down to this count then exit;
@@ -507,20 +504,23 @@ function _coreParse( $eval,
 
 
 
-// Evaluates expression parts between higher precedencedence operators...
-// `*` product
-// `/` division
-// `&` logical AND
-// `!` factorial
-// `^` exponentiation
-//
-// ...`(` open round braket (calls _coreParse with a mutual recursion logic)...
-//
-// ...and functions
+
+/*     `_coreParseHigher()`
+
+   Evaluates expression parts between higher precedencedence operators...
+   `*` product
+   `/` division
+   `&` logical AND
+   `!` factorial
+   `^` exponentiation
+
+   ...`(` open round braket (calls _coreParse with a mutual recursion logic)...
+
+   ...and functions
 
 
-// Expression parts can be explicit values or functions
-// "breakOn" parameter define cases where the function must exit.
+   Expression parts can be explicit values or functions
+   "breakOn" parameter define cases where the function must exit. */
 
 function _coreParseHigher( $eval,
                            $leftValue, // The value (already fetched) on the left to be computed with what follows
@@ -745,10 +745,11 @@ function _coreParseHigher( $eval,
 }
 
 
+/*     `_evaluateFunction()`
 
-// Evaluates the expression(s) (comma separated params if multiple)
-// inside the round brackets then computes the function
-// specified by the token `func`.
+   Evaluates the expression(s) (comma separated params if multiple)
+   inside the round brackets then computes the function
+   specified by the token `func`. */
 
 function _evaluateFunction( $eval, $func )
 {
@@ -1266,9 +1267,12 @@ function _evaluateFunction( $eval, $func )
 
 
 
-// Evaluates an exponentiation.
+/*     `_evaluateExponentiation()`
 
-// ??? Allow mixing integers and float and unpredictable result type?
+   Evaluates an exponentiation.
+
+   ??? Allow mixing integers and float and unpredictable result type? --> NO +++
+*/
 
 function _evaluateExponentiation( $eval,
                                   $base,      // The base has already been fetched;
@@ -1338,7 +1342,9 @@ function _evaluatePow( $eval, $base, $exponent )
 
 
 
-// Evaluates a factorial
+/*     `_parseFactorial()`
+
+   Evaluates a factorial */
 
 function _parseFactorial( $eval,
                             $value,     // The value to compute has already been fetched;
@@ -1382,10 +1388,11 @@ function _parseFactorial( $eval,
 }
 
 
+/*     `_parseToken()`
 
-// Parses the next token and advances the cursor.
-// The function returns a number, a string or a boolean if the token is a value or a param,
-// otherwise `null` is returned. Whitespace is skipped.
+   Parses the next token and advances the cursor.
+   The function returns a number, a string or a boolean if the token is a value or a param,
+   otherwise `null` is returned. Whitespace is skipped. */
 
 function _parseToken( $eval,
                      &$token,      // RETURN: the token.
@@ -1446,7 +1453,7 @@ function _parseToken( $eval,
     switch( $chr )
     {
         case "+":
-            if( _twoConsecutivePlusTokensMaybe( $eval ) )
+            if( _twoConsecutivePlusTokensAreBad( $eval ) )
             {
                 $token = "ERR"; // a subsequent + is not allowed
             }
@@ -1559,14 +1566,16 @@ function _parseToken( $eval,
 
 
 
-// Parses what follows an (already fetched) plus token
-// ensuring that two consecutive plus are not present.
-// Expressions such as 2++2 (binary plus
-// followed by unitary plus) are not allowed.
-// Advances the cursor.
-// Always returns 0.
+/*     `_twoConsecutivePlusTokensAreBad()`
 
-function _twoConsecutivePlusTokensMaybe( $eval )
+   Parses what follows an (already fetched) plus token
+   ensuring that two consecutive plus are not present.
+   Expressions such as 2++2 (binary plus
+   followed by unitary plus) are not allowed.
+   Advances the cursor.
+   Always returns 0. */
+
+function _twoConsecutivePlusTokensAreBad( $eval )
 {
     do
     {
@@ -1578,10 +1587,11 @@ function _twoConsecutivePlusTokensMaybe( $eval )
 }
 
 
+/*     `_parseValue()`
 
-// Parse an explicit value: integer, string or boolean
-// cursor is not changed (advanced) in case of parsing error,
-// and null is returned
+   Parse an explicit value: integer, string or boolean
+   cursor is not changed (advanced) in case of parsing error,
+   and null is returned. */
 
 function _parseValue( $eval )
 {
@@ -1758,8 +1768,10 @@ function _parseValue( $eval )
 
 
 
-// parse a string starting from `$cursor`
-// false is returned if parsing fails
+/*     `_parseString()`
+
+   parse a string starting from `$cursor`,
+   false is returned if parsing fails. */
 
 function _parseString( $str, &$cursor )
 {
@@ -1836,9 +1848,10 @@ function _parseString( $str, &$cursor )
 }
 
 
+/*     `_microsecondsSince()`
 
-// returns microseconds since passed timestamp (in µs)
-// or unix epoch time
+   returns microseconds since passed timestamp (in µs)
+   passed as param; unix epoch time if notging passed */
 
 function _microsecondsSince( $since = 0 )
 {
