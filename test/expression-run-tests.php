@@ -236,11 +236,11 @@ function RunTests()
     Test( __LINE__, Success, 270, "max(1,2,3,10*3^3)" );
     Test( __LINE__, Success, 90, "min(91,92,10*3^2)" );
     Test( __LINE__, Success, 0, "avg(1,-1)" );
-    Test( __LINE__, Success, intdiv( 33, 2 ), "avg(30,3)" );
+    Test( __LINE__, Success, 16, "avg(30,3)" );
     Test( __LINE__, Success, 7, "len(\"foo\")+strlen(\"BAZZ\")+length(\"\")" );
     Test( __LINE__, Success, strlen("👍"), "len(\"👍\")" );
-    Test( __LINE__, Success, trim( " booo \n\t"), "trim(\" booo \\n\\t\")   " );
-    Test( __LINE__, Success, trim( "** booo ****", "*"), "trim(\"** booo ****\", \"*\" )   " );
+    Test( __LINE__, Success, "booo", "trim(\" booo \\n\\t\")   " );
+    Test( __LINE__, Success, " booo ", "trim(\"** booo ****\", \"*\" )   " );
 
 
     // ChatGPT generated
