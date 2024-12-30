@@ -2,7 +2,7 @@
                                                                              /*
 expressionPHP
 
-version 0.4
+version 0.4.
 
 discrete evaluator of integers, floats, booleans, strings,
                       string functions and integer expressions
@@ -633,7 +633,7 @@ function _coreParseHigher( $eval,
             if( $eval->error ) return null;
         }
 
-        if( $nextOp === "Exc" )
+        if( $nextOp === "Exo" )
         {
             $rightValue = _evaluateExponentiation( $eval, $rightValue, $nextOp );
             if( $eval->error ) return null;
@@ -1290,11 +1290,7 @@ function _evaluateExponentiation( $eval,
     $exponent = _coreParseHigher( $eval, 1, "Mul", true, $rightOp );
     if( $eval->error ) return null;
 
-    if( ! is_int( $exponent ) && ! is_float( $exponent ) )
-    {
-        $eval->error = "exponent must be integer or float";
-        return null;
-    }
+    // type
 
     $result = _evaluatePow( $eval, $base, $exponent );
 
@@ -1471,9 +1467,20 @@ function _parseToken( $eval,
         case "*":
             $token = "Mul";
             $eval->cursor++;
+            if( ( $eval->expression )[ $eval->cursor ] === "*" )
+            {
+                $token = "Exo"; // `**` exponentiation
+                $eval->cursor++;
+            }
+            break;
+
+        case ":": // Integer division
+            $token = "Idv";
+            $eval->cursor++;
             break;
 
         case "/":
+
             $token = "Div";
             $eval->cursor++;
 
@@ -1485,7 +1492,7 @@ function _parseToken( $eval,
             break;
 
         case "^":
-            $token = "Exc";
+            $token = "Exo";
             $eval->cursor++;
             break;
 
