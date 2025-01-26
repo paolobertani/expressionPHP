@@ -2,10 +2,6 @@
 
 
 
-//  /***/ = COMMENTED UNTIL FLOAT IS IMPLEMENTED
-
-
-
 require_once( __DIR__ . "/../expression.php" );
 
 
@@ -51,6 +47,7 @@ function RunTests()
 
     $fails = 0;
 
+
     // Parameters
 
     Test( __LINE__, Success, 1,       "foo", [ "foo" => 1    ] );
@@ -58,8 +55,6 @@ function RunTests()
     Test( __LINE__, Success, 0.0,     "foo", [ "foo" => 0.0  ] );
     Test( __LINE__, Success, "A",     "foo", [ "foo" => "A"  ] );
     Test( __LINE__, Success, true,    "foo", [ "foo" => true ] );
-
-
 
 
     // Integers expressions
@@ -78,16 +73,18 @@ function RunTests()
     Test( __LINE__, Success, 1234,    "1234   " );    //
     Test( __LINE__, Success, 6,       "2*+3" );       //
     Test( __LINE__, Failure, null,    "12  34" );     //
-    Test( __LINE__, Failure, null,   "-+3" );        // *
-    Test( __LINE__, Failure, null,   "+-3" );        // *
-    Test( __LINE__, Failure, null,   "2++2" );       // * two plus as consecutive binary and unary operators not allowed
-    Test( __LINE__, Failure, null,   "2---2" );      // * three minus ? not allowed
-    Test( __LINE__, Failure, null,   "--2" );        // * beginning with two minus ? no, a value is expected
+    Test( __LINE__, Failure, null,    "-+3" );        // *
+    Test( __LINE__, Failure, null,    "+-3" );        // *
+    Test( __LINE__, Failure, null,    "2++2" );       // * two plus as consecutive binary and unary operators not allowed
+    Test( __LINE__, Failure, null,    "2---2" );      // * three minus ? not allowed
+    Test( __LINE__, Failure, null,    "--2" );        // * beginning with two minus ? no, a value is expected
+
 
     // Test with params
 
     Test( __LINE__, Success, 5,       " 2* foo - bar", [ "foo" => 3, 'bar' => 1] );
     Test( __LINE__, Failure, null,   " 2* foo - BAZ", [ "foo" => 3, 'bar' => 1] );
+
 
     // Non integer single numbers, and exponent
 
@@ -113,6 +110,7 @@ function RunTests()
     Test( __LINE__, Failure, null,      "12.e1"  );
     Test( __LINE__, Failure, null,      "12E2.5" );
 
+
     // Round brackets
 
     Test( __LINE__, Success, 1,       "(1)" );
@@ -127,6 +125,7 @@ function RunTests()
     Test( __LINE__, Failure, null,   "1+(2*(3+(4+5+6))-1))+6" );     // * too many close brackets
     Test( __LINE__, Failure, null,   "1+()" );                       // * empty expression
     Test( __LINE__, Failure, null,   ".(((((((((((1)))))))))))" );   // *
+
 
     // Booleans
 
@@ -153,6 +152,7 @@ function RunTests()
     Test( __LINE__, Success, false,   "true&!(false|true)" );
     Test( __LINE__, Success, true,    "true&!(false&true)" );
 
+
     // Factorial
 
     Test( __LINE__, Success, 24,      " 4! " );
@@ -162,6 +162,7 @@ function RunTests()
     Test( __LINE__, Failure, null,    " !4 " );
     Test( __LINE__, Failure, null,    " 4!! " );
 
+
     // Exponentiation and precedence
 
     Test( __LINE__, Success, 8,      "2^3" );
@@ -169,6 +170,28 @@ function RunTests()
     Test( __LINE__, Success, 12,     "2^3+4" );// The exponentiation has higher precedence that sum...
     Test( __LINE__, Success, 32,     "2^3*4" );// ...and product
     Test( __LINE__, Success, 4096,   "2^(3*4)" );
+    Test( __LINE__, Failure, null,   "9^0.5" );  // left and right operands must be both integers or float
+    Test( __LINE__, Success, 3.0,    "9.0^.5" );
+    Test( __LINE__, Success, 1/3,    "9.0^-.5" );
+
+
+    // Exponentiation with **
+
+    Test( __LINE__, Success, 8,      "2**3" );
+    Test( __LINE__, Success, 64,     "2**3!" ); // Factorial has higher precedence than exponentiation
+    Test( __LINE__, Success, 12,     "2**3+4" );// The exponentiation has higher precedence that sum...
+    Test( __LINE__, Success, 32,     "2**3*4" );// ...and product
+    Test( __LINE__, Success, 4096,   "2**(3*4)" );
+
+
+    // Exponentiation with ^
+
+    Test( __LINE__, Success, 8,      "2^3" );
+    Test( __LINE__, Success, 64,     "2^3!" );
+    Test( __LINE__, Success, 12,     "2^3+4" );
+    Test( __LINE__, Success, 32,     "2^3*4" );
+    Test( __LINE__, Success, 4096,   "2^(3*4)" );
+
 
     // Operator precedence
 
@@ -179,24 +202,114 @@ function RunTests()
     Test( __LINE__, Success, 20,  "1+2\n\t*3^2+1");
     Test( __LINE__, Success, 11,  "1+3   ^2+1" );
     Test( __LINE__, Success, 24,  "2^3*3" );
-    Test( __LINE__, Success, 64,  "2^3!" );   // ^ < !
+    Test( __LINE__, Success, 64,  "2^3!" );   // =2^6 (since ^ < !)
     Test( __LINE__, Success, -6,  "2*-3" );   // unary minus > *
-    /***/ // Test( __LINE__, Success, -1.5,"3/-2" );   // unary minus > /
-    /***/ // Test( __LINE__, Success,1/9.0,"3^-2" );   // unary minus > ^
 
-    // Unary minus precedence
+    Test( __LINE__, Success, -1.5,"3.0/-2.0" );   // unary minus > /
+    Test( __LINE__, Success,1/9.0,"3.0^-2.0" );   // unary minus > ^
+    Test( __LINE__, Success, -1  ,"3  :-2  " );
+    Test( __LINE__, Success, -1  ,"3  ÷-2  " );
 
-    // Unary minus has lowest precedence (with exceptions)
+
+    // Operator precedence, exponentiation with **
+
+    Test( __LINE__, Success, 19,  "1+2*3**2" );// + < * < **
+    Test( __LINE__, Success, 10,  "1+3**2" );  //
+    Test( __LINE__, Success, 15,  "2+3*4+1" );//
+    Test( __LINE__, Success, 20,  "1+2\n\t*3**2+1");
+    Test( __LINE__, Success, 11,  "1+3   **2+1" );
+    Test( __LINE__, Success, 24,  "2**3*3" );
+    Test( __LINE__, Success, 64,  "2**3!" );   // =2^6 (since ** < !)
+
+
+    // Unary minus has lowest precedence
+
     Test( __LINE__, Success, -9,  "-3^2" );   // -(3^2)
-    /***/ // Test( __LINE__, Success,  8,  "64^-2" );  // unary minus has highest precedence after a binary operator but...
-    Test( __LINE__, Success,  1,  "5+-2^2" ); // ...has lowest precedence after `+`
+    Test( __LINE__, Success,  1,  "5+-2^2" ); //
     Test( __LINE__, Success, -4,  "-2^2" );   //
     Test( __LINE__, Success, -6,  "-3!" );    // -(3!)
+
+    Test( __LINE__, Success, -9,  "-3**2" );
+    Test( __LINE__, Success,  1,  "5+-2**2" ); //
+    Test( __LINE__, Success, -4,  "-2**2" );   //
 
 
     // Integer functions
 
     Test( __LINE__, Success, 10,  "avg( 0, 10, 20 )" );
+
+
+    // IntDiv
+
+    Test( __LINE__, Success,  5, "2+6//2" );
+    Test( __LINE__, Success,  4, "8//2" );
+    Test( __LINE__, Success,  9, "3*3" );
+    Test( __LINE__, Success,  8, "15//2+1" );
+    Test( __LINE__, Success, 11, "5*2+1" );
+    Test( __LINE__, Success,  4, "9//2" );
+    Test( __LINE__, Success, 10, "20//2" );
+    Test( __LINE__, Success,  8, "3+15//3" );
+    Test( __LINE__, Success,  9, "5+8//2" );
+    Test( __LINE__, Success,  9, "13//2+3" );
+    Test( __LINE__, Success,  6, "3+10//3" );
+    Test( __LINE__, Success, 15, "12+9//3" );
+    Test( __LINE__, Success,  1, "5//5" );
+    Test( __LINE__, Success, 13, "10+13//4" );
+    Test( __LINE__, Success, 20, "18+6//3" );
+    Test( __LINE__, Success, 17, "20-6//2" );
+    Test( __LINE__, Success, 30, "25+10//2" );
+    Test( __LINE__, Success,  9, "7+8//4" );
+    Test( __LINE__, Success, 15, "18-15//5" );
+    Test( __LINE__, Success,  7, "3*5//2" );
+
+    Test( __LINE__, Success,  5, "2+6//2" );
+    Test( __LINE__, Success,  4, "8//2" );
+    Test( __LINE__, Success,  9, "3*3" );
+    Test( __LINE__, Success,  8, "15//2+1" );
+    Test( __LINE__, Success, 11, "5*2+1" );
+    Test( __LINE__, Success,  4, "9//2" );
+    Test( __LINE__, Success, 10, "20//2" );
+    Test( __LINE__, Success,  8, "3+16//3" );
+    Test( __LINE__, Success,  9, "5+8//2" );
+    Test( __LINE__, Success,  9, "13//2+3" );
+    Test( __LINE__, Success,  6, "3+10//3" );
+    Test( __LINE__, Success, 15, "12+9//3" );
+    Test( __LINE__, Success,  1, "5//5" );
+    Test( __LINE__, Success, 13, "10+12//4" );
+    Test( __LINE__, Success, 20, "18+6//3" );
+    Test( __LINE__, Success, 17, "20-6//2" );
+    Test( __LINE__, Success, 30, "25+10//2" );
+    Test( __LINE__, Success,  9, "7+8//4" );
+    Test( __LINE__, Success, 15, "18-15//5" );
+    Test( __LINE__, Success,  6, "3*4//2" );
+
+
+    // ÷
+
+    Test( __LINE__, Success,  62, " 120  ÷   4  +  (  (   80   ÷  (  2  +  1  )  +  (  2   *   3  )  )  )  " );
+    Test( __LINE__, Success, 101, " 300  ÷   5  +  (  (   50   ÷  2  +  (  4   *  (  3  +  1  )  )  )  )   " );
+    Test( __LINE__, Success, 126, " 144  ÷   3  +  (  (  128   ÷  2  +  (  (  5  +  2  )  *  2  )  )  )    " );
+    Test( __LINE__, Success,  45, "  90  ÷   3  +  (  (   55   ÷  5  +  (  2  ^  (  3  -  1  )  )  )  )    " );
+    Test( __LINE__, Success, 101, " 200  ÷   4  +  (  (  100   ÷  (  2  +  1  )  +  (  6   *  3  )  )  )   " );
+    Test( __LINE__, Success, 231, " 500  ÷   5  +  (  (  (  220  ÷  2  )  +  (  7  *  (  2  +  1  )  )  )) " );
+    Test( __LINE__, Success,  99, " 150  ÷   3  +  (  (   82   ÷  2  +  (  (  3  ^  2  )  -  1  )  )  )    " );
+    Test( __LINE__, Success, 139, " 250  ÷   5  +  (  (  130   ÷  2  +  (  4   *  (  4  +  2  )  )  )  )   " );
+    Test( __LINE__, Success, 148, " 400  ÷   8  +  (  (  132   ÷  2  +  (  (  3  ^  3  )  +  5  )  )  )    " );
+    Test( __LINE__, Success,  79, " 120  ÷   4  +  (  (   68   ÷  2  +  (  5   *  (  2  +  1  )  )  )  )   " );
+    Test( __LINE__, Success, 197, " 600  ÷   6  +  (  (  (  178  ÷  2  )  +  (  2  ^  (  4  -  1  )  )  ) )" );
+    Test( __LINE__, Success, 145, " 170  ÷   2  +  (  (  (   90  ÷  3  )  +  (  6  *  (  3  +  2  )  )  ) )" );
+    Test( __LINE__, Success, 144, " 280  ÷   4  +  (  (  128   ÷  2  +  (  (  3  ^  2  )  +  1  )  )  )    " );
+    Test( __LINE__, Success, 108, " 240  ÷   4  +  (  (  (   72  ÷  2  )  +  (  4  *  (  2  +  1  )  )  ) )" );
+    Test( __LINE__, Success, 124, " 300  ÷   5  +  (  (  (   96  ÷  2  )  +  (  2  ^  (  3  +  1  )  )  ) )" );
+    Test( __LINE__, Success, 127, " 353  ÷   5  +  (  (   88   ÷  2  +  (  (  5  *  3  )  -  2  )  )  )    " );
+    Test( __LINE__, Success,  99, " 141  ÷   2  +  (  (   54   ÷  3  +  (  (  3  ^  2  )  +  2  )  )  )    " );
+    Test( __LINE__, Success, 130, " 211  ÷   3  +  (  (  (   84  ÷  2  )  +  (  6  *  (  2  +  1  )  )  )) " );
+    Test( __LINE__, Success, 157, " 481  ÷   6  +  (  (  110   ÷  2  +  (  (  4  ^  2  )  +  6  )  )  )    " );
+    Test( __LINE__, Success, 182, " 363  ÷   4  +  (  (  128   ÷  2  +  (  (  2  ^  5  )  -  4  )  )  )    " );
+
+    Test( __LINE__, Success, 2, "10 * 3 // 15" ); // ATTENTION: Those equals `( 10 * 3 ) ÷ 15 = 2`, NOT `10 * (3 ÷ 15)`;
+    Test( __LINE__, Success, 2, "10 * 3 :  15" ); //            the same rule applies, most programming languages
+    Test( __LINE__, Success, 2, "10 * 3 ÷  15" ); //            and math.
 
 
     // Strings
@@ -220,7 +333,7 @@ function RunTests()
     Test( __LINE__, Success, "FOObar", "\"FOO\"+\"\"+\"bar\"" );
 
 
-    // Functions
+    // Built-In Functions
 
     Test( __LINE__, Success, bin2hex("FOOBAR\n"), "bin2hex(\"FOOBAR\\n\")" );
     Test( __LINE__, Success, "FOOBAR\n", "hex2bin(bin2hex(\"FOOBAR\\n\"))" );
@@ -299,13 +412,16 @@ function RunTests()
     Test( __LINE__, Success, 'Hello', 'rtrim("Hello   ")' );
     Test( __LINE__, Success, 'Test', 'rtrim("Test---", "-")' );
 
+
+
+    //
     // All tests passed?
+    //
 
     if( $fails === 0 )
     {
-        echo "All $testCount tests passed!\nElapsed time: " . $totalTime / 1000 . " ms.\n";
-        arsort( $singleTime );
-        echo "Worst at line " . key( $singleTime ) . " took " . reset( $singleTime ) . "µs.\n";
+        echo "All $testCount tests passed!\nElapsed time: " . number_format( $totalTime / 1000, 3 ) . " ms.\n";
+        arsort( $singleTime ); echo "Worst at line " . key( $singleTime ) . " took " . reset( $singleTime ) . " µs.\n";
     }
     else
     {
@@ -344,9 +460,9 @@ function Test( $lineNumber, $expectedStatus, $expectedResult, $expression, $para
         $returnedStatus = Success;
     }
 
-    // floats are compared after separing exponent from mantissa to avoid issues due to double limited precision
+    // floats are compared with 1E-6 tolerance due to floating point limited precision
 
-    if( $returnedStatus === $expectedStatus && is_float( $returnedResult ) && is_float( $expectedResult ) && abs( $returnedResult - $expectedResult ) < 10e-6 )
+    if( $returnedStatus === $expectedStatus && is_float( $returnedResult ) && is_float( $expectedResult ) && abs( $returnedResult - $expectedResult ) < 1e-6 )
     {
         return;
     }
