@@ -42,8 +42,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -------------------------------------------------------------------------------
 
 
-    +++ things to do
-    ??? design decisions to take
+    `TODO` things to do
+
 
 */
 
@@ -54,31 +54,73 @@ namespace Kalei\Expression;
 
 
 //
+// tokens
+//
+
+const tEOF = 000,
+      tERR = 010,
+      tVal = 020,
+      tCOM = 030,
+      tRBC = 031,
+      tRBO = 032,
+      tAnd = 040,
+      tDiv = 041,
+      tExp = 042,
+      tNot = 043,
+      tFct = 044,
+      tSub = 045,
+      tSum = 046,
+      tAvg = 100,
+      tB2h = 101,
+      tChr = 102,
+      tH2b = 103,
+      tHte = 104,
+      tIdv = 105,
+      tLen = 106,
+      tLtr = 107,
+      tMax = 108,
+      tMd5 = 109,
+      tMin = 110,
+      tMul = 111,
+      tOrd = 113,
+      tPow = 114,
+      tRtr = 115,
+      tSha = 116,
+      tSst = 117,
+      tStp = 118,
+      tTrm = 119,
+      tFac = 120;
+
+
+
+//
 // functions
 //
 
 const FUNCTIONS = [
-    "fact"          => "Fac",
-    "pow"           => "Pow",
-    "max"           => "Max",
-    "min"           => "Min",
-    "average"       => "Avg",
-    "avg"           => "Avg",
-    "length"        => "Len",
-    "len"           => "Len",
-    "strlen"        => "Len",
-    "strpos"        => "Stp",
-    "trim"          => "Trm",
-    "substr"        => "Sst",
-    "bin2hex"       => "B2h",
-    "chr"           => "Chr",
-    "hex2bin"       => "H2b",
-    "htmlentities"  => "Hte",
-    "ord"           => "Ord",
-    "ltrim"         => "Ltr",
-    "rtrim"         => "Rtr",
-    "sha1"          => "Sha",
-    "md5"           => "Md5"
+    "fact"          => tFac,
+    "pow"           => tPow,
+    "max"           => tMax,
+    "min"           => tMin,
+    "average"       => tAvg,
+    "avg"           => tAvg,
+    "length"        => tLen,
+    "len"           => tLen,
+    "strlen"        => tLen,
+    "strpos"        => tStp,
+    "trim"          => tTrm,
+    "substr"        => tSst,
+    "bin2hex"       => tB2h,
+    "bintohex"      => tB2h,
+    "chr"           => tChr,
+    "hex2bin"       => tH2b,
+    "hextobin"      => tH2b,
+    "htmlentities"  => tHte,
+    "ord"           => tOrd,
+    "ltrim"         => tLtr,
+    "rtrim"         => tRtr,
+    "sha1"          => tSha,
+    "md5"           => tMd5
 ];
 
 
@@ -391,7 +433,7 @@ function _coreParse( $eval,
                     &$tokenThatCausedBreak = null )  // if not null the token/symbol that caused the function to exit;
 {
     $result = null;
-    $rightToken = "Sum";
+    $rightToken = tSum;
 
     do
     {
@@ -399,12 +441,12 @@ function _coreParse( $eval,
 
         $value = _coreParseHigher( $eval,
                                    null,        // `null` as value lets $rightToken be accepted despite type
-                                   "Mul",
+                                   tMul,
                                    false,
                                    $rightToken );
         if( $eval->error ) return null;
 
-        /**/if( $leftToken === "Sum" )
+        /**/if( $leftToken === tSum )
         {
             /**/if( $result === null )
             {
@@ -428,7 +470,7 @@ function _coreParse( $eval,
                 return null;
             }
         }
-        elseif( $leftToken === "Sub" )
+        elseif( $leftToken === tSub )
         {
             /**/if( is_int( $value ) && is_int( $result ) )
             {
@@ -457,12 +499,12 @@ function _coreParse( $eval,
             }
         }
     }
-    while( $rightToken === "Sum" || $rightToken === "Sub" || $rightToken === "Or" );
+    while( $rightToken === tSum || $rightToken === tSub || $rightToken === "Or" );
 
     // A round close bracket:
     // check for negative count.
 
-    if( $rightToken === "RBC" )
+    if( $rightToken === tRBC )
     {
         $eval->RBC--;
         if( $eval->RBC < 0 )
@@ -478,7 +520,7 @@ function _coreParse( $eval,
 
     // Check if must exit(return)
 
-    if( ( $eval->RBC === $breakOnRBC ) || ( $breakOnEOF && $rightToken === "EOF" ) || ( $breakOnCOMMA && $rightToken === "COM" ) )
+    if( ( $eval->RBC === $breakOnRBC ) || ( $breakOnEOF && $rightToken === tEOF ) || ( $breakOnCOMMA && $rightToken === tCOM ) )
     {
         return $result;
     }
@@ -487,15 +529,15 @@ function _coreParse( $eval,
 
     switch( $rightToken )
     {
-        case "EOF":
+        case tEOF:
             $eval->error = "unexpected end of expression";
             break;
 
-        case "RBC":
+        case tRBC:
             $eval->error = "unexpected close round bracket";
             break;
 
-        case "COM":
+        case tCOM:
             $eval->error = "unexpected comma";
             break;
 
@@ -540,28 +582,6 @@ function _coreParseHigher( $eval,
     $sign = 1;
     $not = 0;
 
-    $functionTokens =
-    [
-        "Fac",
-        "Pow",
-        "Max",
-        "Min",
-        "Avg",
-        "Len",
-        "Trm",
-        "Sst",
-        "Stp",
-        "B2h",
-        "Chr",
-        "H2b",
-        "Hte",
-        "Md5",
-        "Ord",
-        "Ltr",
-        "Rtr",
-        "Sha"
-    ];
-
     do
     {
         $rightValue = _parseToken( $eval, $token, $leftValue );
@@ -570,19 +590,19 @@ function _coreParseHigher( $eval,
         // Unary minus, plus, logical not?
         // store the sign and get the next token
 
-        if( $token === "Sub" )
+        if( $token === tSub )
         {
             $sign = -1;
             $rightValue = _parseToken( $eval, $token, $leftValue );
             if( $eval->error ) return null;
         }
-        elseif( $token === 'Not')
+        elseif( $token === tNot )
         {
             $not = 1;
             $rightValue = _parseToken( $eval, $token, $leftValue );
             if( $eval->error ) return null;
         }
-        elseif( $token === "Sum" )
+        elseif( $token === tSum )
         {
             $sign = 1;
             $rightValue = _parseToken( $eval, $token, $leftValue );
@@ -597,30 +617,30 @@ function _coreParseHigher( $eval,
         // Open round bracket?
         // The expression between brackets is evaluated.
 
-        if( $token === "RBO" )
+        if( $token === tRBO )
         {
             $eval->RBC++;
 
             $rightValue = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return null;
 
-            $token = "Val";
+            $token = tVal;
         }
 
         // A function ?
 
-        if( in_array( $token, $functionTokens ) )
+        if( $token >= 100 ) // function tokens start at 100
         {
             $rightValue = _evaluateFunction( $eval, $token );
             if( $eval->error ) return null;
 
-            $token = "Val";
+            $token = tVal;
         }
 
         // Excluded previous cases then
         // the token must be a value.
 
-        if( $token !== "Val" )
+        if( $token !== tVal )
         {
             $eval->error = "expected value";
             return null;
@@ -632,13 +652,13 @@ function _coreParseHigher( $eval,
         _parseToken( $eval, $nextOp, $rightValue );
         if( $eval->error ) return null;
 
-        if( $nextOp === "Fct" )
+        if( $nextOp === tFct )
         {
             $rightValue = _parseFactorial( $eval, $rightValue, $nextOp );
             if( $eval->error ) return null;
         }
 
-        if( $nextOp === "Exo" )
+        if( $nextOp === tExp )
         {
             $rightValue = _evaluateExponentiation( $eval, $rightValue, $nextOp );
             if( $eval->error ) return null;
@@ -647,7 +667,7 @@ function _coreParseHigher( $eval,
         // multiplication/division is finally
         // calculated
 
-        /**/if( $op === "Mul" )
+        /**/if( $op === tMul )
         {
             /**/if( $leftValue === null )
             {
@@ -697,7 +717,7 @@ function _coreParseHigher( $eval,
                 return null;
             }
         }
-        elseif( $op === "Idv" )
+        elseif( $op === tIdv )
         {
             if( is_int( $leftValue ) && is_int( $rightValue ) )
             {
@@ -709,7 +729,7 @@ function _coreParseHigher( $eval,
                 return null;
             }
         }
-        elseif( $op === "Div" )
+        elseif( $op === tDiv )
         {
             if( is_float( $leftValue ) && is_float( $rightValue ) )
             {
@@ -722,7 +742,7 @@ function _coreParseHigher( $eval,
                 return null;
             }
         }
-        elseif( $op === "And" )
+        elseif( $op === tAnd )
         {
             if( is_bool( $leftValue ) && is_bool( $rightValue ) )
             {
@@ -750,7 +770,7 @@ function _coreParseHigher( $eval,
         // ...unless an exponent is evaluated
         // (because exponentiation ^ operator have higher precedence)
     }
-    while( ( $op === "Mul" || $op === "Idv" || $op === "Div" || $op === "And" ) && ! $isExponent );
+    while( ( $op === tMul || $op === tIdv || $op === tDiv || $op === tAnd ) && ! $isExponent );
 
     $leftOp = $op;
 
@@ -771,7 +791,7 @@ function _evaluateFunction( $eval, $func )
     _parseToken( $eval, $token, null );
     if( $eval->error ) return null;
 
-    if( $token !== "RBO" )
+    if( $token !== tRBO )
     {
         $eval->error = "expected open round bracket after function name";
         return null;
@@ -781,7 +801,7 @@ function _evaluateFunction( $eval, $func )
 
     switch( $func )
     {
-        case "Fac":
+        case tFac:
             $operand = _coreParse( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return null;
 
@@ -812,7 +832,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Pow":
+        case tPow:
             $base = _coreParse( $eval, -1, false, true );
             if( $eval->error ) return null;
 
@@ -837,7 +857,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Max":
+        case tMax:
             $greatestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -847,7 +867,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            while( $tokenThatCausedBreak === "COM" )
+            while( $tokenThatCausedBreak === tCOM )
             {
                 $greaterValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -868,7 +888,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Min":
+        case tMin:
             $smallestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -878,7 +898,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            while( $tokenThatCausedBreak === "COM" )
+            while( $tokenThatCausedBreak === tCOM )
             {
                 $smallerValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -899,7 +919,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Avg":
+        case tAvg:
             $total = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -910,7 +930,7 @@ function _evaluateFunction( $eval, $func )
             }
 
             $count = 1;
-            while( $tokenThatCausedBreak === "COM" )
+            while( $tokenThatCausedBreak === tCOM )
             {
                 $value = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -930,7 +950,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Len":
+        case tLen:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -945,7 +965,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Trm":
+        case tTrm:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -955,7 +975,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak === "COM" )
+            if( $tokenThatCausedBreak === tCOM )
             {
                 $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -976,7 +996,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Sst":
+        case tSst:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -986,7 +1006,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak !== "COM" )
+            if( $tokenThatCausedBreak !== tCOM )
             {
                 $eval->error = "expected comma";
                 return null;
@@ -1001,11 +1021,11 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak === "RBC" )
+            if( $tokenThatCausedBreak === tRBC )
             {
                 $result = substr( $text, $startIndex );
             }
-            elseif( $tokenThatCausedBreak === "COM" )
+            elseif( $tokenThatCausedBreak === tCOM )
             {
                 $charactersCount = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -1027,7 +1047,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Stp":
+        case tStp:
             $haystack = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
@@ -1037,7 +1057,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak !== "COM" )
+            if( $tokenThatCausedBreak !== tCOM )
             {
                 $eval->error = "expected comma";
                 return null;
@@ -1052,7 +1072,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak === "COM" )
+            if( $tokenThatCausedBreak === tCOM )
             {
                 $offset = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -1078,7 +1098,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "B2h":
+        case tB2h:
             $bin = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1095,7 +1115,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Chr":
+        case tChr:
             $ascii = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1113,7 +1133,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "H2b":
+        case tH2b:
             $hex = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1131,7 +1151,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Hte":
+        case tHte:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1148,7 +1168,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Md5":
+        case tMd5:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1166,7 +1186,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Ord":
+        case tOrd:
             $char = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1184,7 +1204,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Ltr":
+        case tLtr:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1197,7 +1217,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak === "COM" )
+            if( $tokenThatCausedBreak === tCOM )
             {
                 $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -1218,7 +1238,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Rtr":
+        case tRtr:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1231,7 +1251,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            if( $tokenThatCausedBreak === "COM" )
+            if( $tokenThatCausedBreak === tCOM )
             {
                 $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
@@ -1252,7 +1272,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Sha":
+        case tSha:
             $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
@@ -1293,7 +1313,7 @@ function _evaluateExponentiation( $eval,
 
     // type check is made by `_evaluatePow()`
 
-    $exponent = _coreParseHigher( $eval, null, "Mul", true, $rightOp );
+    $exponent = _coreParseHigher( $eval, null, tMul, true, $rightOp );
     if( $eval->error ) return null;
 
     $result = _evaluatePow( $eval, $base, $exponent );
@@ -1358,14 +1378,14 @@ function _parseFactorial( $eval,
     if( $value < 0 )
     {
         $eval->error = "attempt to evaluate factorial of negative number";
-        $rightOp = "ERR";
+        $rightOp = tERR;
         return null;
     }
 
     if( ! is_int( $value ) )
     {
         $eval->error = "attempt to evaluate factorial of a non-integer value";
-        $rightOp = "ERR";
+        $rightOp = tERR;
         return null;
     }
 
@@ -1423,17 +1443,17 @@ function _parseToken( $eval,
     $chr = ( $eval->expression )[ $eval->cursor ];
     if( ( $chr >= "0"   && $chr <= "9"  )
        || $chr === "\"" || $chr === "." ) // there is no need to catch 't'rue and 'f'alse here
-    {                                               // as they are added as params [***]
+    {                                     // as they are added as params [***]
         $value = _parseValue( $eval );
         if( $eval->error )
         {
-            $token = "ERR";
+            $token = tERR;
             return null;
             /*--- EXIT POINT ---*/
         }
         else
         {
-            $token = "Val";
+            $token = tVal;
             return $value;
             /*--- EXIT POINT ---*/
         }
@@ -1446,7 +1466,7 @@ function _parseToken( $eval,
     {
         if( substr( $eval->expression, $eval->cursor, $eval->paramsLen[ $i ] ) === $eval->paramsName[ $i ] )
         {
-            $token = "Val";
+            $token = tVal;
             $eval->cursor += $eval->paramsLen[ $i ];
             return $eval->paramsVal[ $i ];
             /*--- EXIT POINT ---*/
@@ -1460,25 +1480,25 @@ function _parseToken( $eval,
         case "+":
             if( _plusPlusTokenIsNotAllowed( $eval ) )
             {
-                $token = "ERR"; // a subsequent + is not allowed
+                $token = tERR; // a subsequent + is not allowed
             }
             else
             {
-                $token = "Sum";
+                $token = tSum;
             }
             break;
 
         case "-":
-            $token = "Sub";
+            $token = tSub;
             $eval->cursor++;
             break;
 
         case "*": // Multiplication `*` or Exponentiation `**`
-            $token = "Mul";
+            $token = tMul;
             $eval->cursor++;
             if( ( $eval->expression )[ $eval->cursor ] === "*" )
             {
-                $token = "Exo"; // `**` exponentiation
+                $token = tExp; // `**` exponentiation
                 $eval->cursor++;
             }
             break;
@@ -1486,42 +1506,42 @@ function _parseToken( $eval,
         case "\xc3": // Integer division with ÷
             if( ( $eval->expression )[ $eval->cursor + 1 ] === "\xb7" )
             {
-                $token = "Idv";
+                $token = tIdv;
                 $eval->cursor+=2;
                 break;
             }
 
         case ":": // Integer division with :
-            $token = "Idv";
+            $token = tIdv;
             $eval->cursor++;
             break;
 
         case "/": // Float division with `/`
 
-            $token = "Div";
+            $token = tDiv;
             $eval->cursor++;
 
             // Or Integer division `//`
 
             if( ( $eval->expression )[ $eval->cursor ] === "/" )
             {
-                $token = "Idv";
+                $token = tIdv;
                 $eval->cursor++;
             }
             break;
 
         case "^":
-            $token = "Exo";
+            $token = tExp;
             $eval->cursor++;
             break;
 
         case "!": // if it trails a number then `Factorial` otherwise `Not`
-            $token = is_int( $leftValue ) ? "Fct" : "Not";
+            $token = is_int( $leftValue ) ? tFct : tNot;
             $eval->cursor++;
             break;
 
         case "&":
-            $token = "And";
+            $token = tAnd;
             $eval->cursor++;
             if( ( $eval->expression )[ $eval->cursor ] === "&" ) // && is an alias of &
             {
@@ -1539,22 +1559,22 @@ function _parseToken( $eval,
             break;
 
         case "(":
-            $token = "RBO";
+            $token = tRBO;
             $eval->cursor++;
             break;
 
         case ")":
-            $token = "RBC";
+            $token = tRBC;
             $eval->cursor++;
             break;
 
         case "\0":
-            $token = "EOF";
+            $token = tEOF;
             $eval->cursor++;
             break;
 
         case ",":
-            $token = "COM";
+            $token = tCOM;
             $eval->cursor++;
             break;
 
@@ -1585,7 +1605,7 @@ function _parseToken( $eval,
 
     // none of the above: raise error
 
-    $token = "ERR";
+    $token = tERR;
     $eval->error = "unexpected symbol";
     return null;
 }
@@ -1663,7 +1683,7 @@ function _parseValue( $eval )
 
     // Last chanche: a integer or a float
 
-    // +++ Parse a hex value too?
+    // TODO Parse a hex value too?
 
     $isnum = false; // Will be set to true as a number is detected
 
