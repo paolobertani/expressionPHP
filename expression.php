@@ -1,8 +1,10 @@
 <?php
-                                                                             /*
+
+/*
+
 expressionPHP
 
-version 0.4.
+version 0.4
 
 discrete evaluator of integers, floats, booleans, strings,
                       string functions and integer expressions
@@ -43,8 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     +++ things to do
     ??? design decisions to take
 
-
-                                                                             */
+*/
 
 
 
@@ -110,8 +111,8 @@ function main( $argv )
         else
         {
             $type = gettype( $result );
-            if( $type === "double" ) $type = "64 bit float";
-            if( $type === "integer") $type = "64 bit signed integer";
+            if( $type === "double" ) $type = "float, 64 bit";
+            if( $type === "integer") $type = "signed integer, 64 bit";
             echo "Error:  none\nType:   $type\n";
             if( $type === 'boolean' )
             {
@@ -368,13 +369,17 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
 /*     `_coreParse()`
 
    Parses and evaluates expression parts between lower precedence operators:
+
    `+` sum
    `-` subtraction
    `.` string concatenation
    `|` logical OR
+
    and
    `)` closed round bracked (decrementing count)
+
    breakOnRBC, breakOnEOF, breakOnCOMMA define cases where the function must return
+
    The function is going to be called recursively
    The function calls `_coreParseHiger()` to parse parts between higher
    precedence operators. */
@@ -467,18 +472,18 @@ function _coreParse( $eval,
         }
     }
 
-    // Returns the token that caused the function to exit
+    // Return the token that caused the function to exit
 
     $tokenThatCausedBreak = $rightToken;
 
-    // Check if we must exit
+    // Check if must exit(return)
 
     if( ( $eval->RBC === $breakOnRBC ) || ( $breakOnEOF && $rightToken === "EOF" ) || ( $breakOnCOMMA && $rightToken === "COM" ) )
     {
         return $result;
     }
 
-    // If not it's an error.
+    // If don't have to exit then there is an error in the expression
 
     switch( $rightToken )
     {
@@ -644,20 +649,21 @@ function _coreParseHigher( $eval,
 
         /**/if( $op === "Mul" )
         {
-            if( $leftValue === null )
+            /**/if( $leftValue === null )
             {
                 if( $sign === -1 && ! is_int( $rightValue ) && ! is_float( $rightValue ) )
                 {
                     $eval->error = "unary minus before non integer nor float value";
                     return null;
                 }
+
                 if( $not === 1 && ! is_bool( $rightValue ) )
                 {
                     $eval->error = "unary `not` before non boolean value";
                     return null;
                 }
 
-                /**/if( is_int( $rightValue ) || is_float( $rightValue ) )
+                /**/if( is_float( $rightValue ) || is_int( $rightValue ) )
                 {
                     $leftValue = $rightValue * $sign;
                 }
@@ -670,16 +676,23 @@ function _coreParseHigher( $eval,
                     $leftValue = $rightValue;
                 }
             }
-            elseif( is_int( $leftValue ) && is_int( $rightValue ) )
+            elseif( ( is_int( $leftValue ) && is_int( $rightValue ) ) || ( is_float( $leftValue ) && is_float( $rightValue ) ) )
             {
-                $leftValue = $leftValue * $rightValue * $sign;
-            }
-            elseif( is_float( $leftValue ) && is_float( $rightValue ) )
-            {
+                if( $not === 1 )
+                {
+                    $eval->error = "unary `not` before non boolean value";
+                    return null;
+                }
+
                 $leftValue = $leftValue * $rightValue * $sign;
             }
             else
             {
+                echo "***cursor = $eval->cursor\n\n$eval->expression\n";
+                var_export( $leftValue ); echo "\n";
+                var_export( $rightValue ); echo "\n";
+                echo "***\n\n";
+
                 $eval->error = "left and right operands must be both integers or float";
                 return null;
             }
@@ -799,7 +812,7 @@ function _evaluateFunction( $eval, $func )
 
 
 
-        case "Pow": // ??? Allow mixing integers and float and unpredictable result type?
+        case "Pow":
             $base = _coreParse( $eval, -1, false, true );
             if( $eval->error ) return null;
 
@@ -1269,10 +1282,7 @@ function _evaluateFunction( $eval, $func )
 
 /*     `_evaluateExponentiation()`
 
-   Evaluates an exponentiation.
-
-   ??? Allow mixing integers and float and unpredictable result type? --> NO +++
-*/
+   Evaluates an operator-exponentiation via `_evaluatePow`. */
 
 function _evaluateExponentiation( $eval,
                                   $base,      // The base has already been fetched;
@@ -1281,22 +1291,21 @@ function _evaluateExponentiation( $eval,
     $exponent = 0;
     $result = 0;
 
-    if( ! is_int( $base ) && ! is_float( $base ) )
-    {
-        $eval->error = "base must be integer or floar";
-        return null;
-    }
+    // type check is made by `_evaluatePow()`
 
     $exponent = _coreParseHigher( $eval, 1, "Mul", true, $rightOp );
     if( $eval->error ) return null;
-
-    // type
 
     $result = _evaluatePow( $eval, $base, $exponent );
 
     return $result;
 }
 
+
+
+/*     `_evaluatePow()`
+
+   Calculates exponentiation. */
 
 function _evaluatePow( $eval, $base, $exponent )
 {
@@ -1313,27 +1322,27 @@ function _evaluatePow( $eval, $base, $exponent )
         return $result;
     }
 
-    if( gettype( $base ) !== gettype( $exponent ) )
+    if( is_int( $base ) && is_int( $exponent ) )
     {
-        $eval->error = "base and exponent must be both floats or integers";
-        return null;
+        $result = pow( $base, $exponent );
+
+        if( is_nan( $result ) )
+        {
+            $eval->error = "exponentiation results in a complex number";
+            return null;
+        }
+
+        if( is_int( $base ) && is_int( $exponent ) && ! is_int( $result ) )
+        {
+            $eval->error = "this exponentiation between `int`s doesn't fit an integer";
+            return null;
+        }
+
+        return $result;
     }
 
-    $result = pow( $base, $exponent );
-
-    if( is_nan( $result ) )
-    {
-        $eval->error = "exponentiation results in a complex number";
-        return null;
-    }
-
-    if( ! is_int( $result ) )
-    {
-        $eval->error = "exponentiation doesn't fit an integer value";
-        return null;
-    }
-
-    return $result;
+    $eval->error = "base and exponent must be both floats or integers";
+    return null;
 }
 
 
@@ -1449,7 +1458,7 @@ function _parseToken( $eval,
     switch( $chr )
     {
         case "+":
-            if( _twoConsecutivePlusTokensAreBad( $eval ) )
+            if( _plusPlusTokenIsNotAllowed( $eval ) )
             {
                 $token = "ERR"; // a subsequent + is not allowed
             }
@@ -1464,7 +1473,7 @@ function _parseToken( $eval,
             $eval->cursor++;
             break;
 
-        case "*":
+        case "*": // Multiplication `*` or Exponentiation `**`
             $token = "Mul";
             $eval->cursor++;
             if( ( $eval->expression )[ $eval->cursor ] === "*" )
@@ -1474,15 +1483,25 @@ function _parseToken( $eval,
             }
             break;
 
-        case ":": // Integer division
+        case "\xc3": // Integer division with ÷
+            if( ( $eval->expression )[ $eval->cursor + 1 ] === "\xb7" )
+            {
+                $token = "Idv";
+                $eval->cursor+=2;
+                break;
+            }
+
+        case ":": // Integer division with :
             $token = "Idv";
             $eval->cursor++;
             break;
 
-        case "/":
+        case "/": // Float division with `/`
 
             $token = "Div";
             $eval->cursor++;
+
+            // Or Integer division `//`
 
             if( ( $eval->expression )[ $eval->cursor ] === "/" )
             {
@@ -1573,7 +1592,7 @@ function _parseToken( $eval,
 
 
 
-/*     `_twoConsecutivePlusTokensAreBad()`
+/*     `_plusPlusTokenIsNotAllowed()`
 
    Parses what follows an (already fetched) plus token
    ensuring that two consecutive plus are not present.
@@ -1582,7 +1601,7 @@ function _parseToken( $eval,
    Advances the cursor.
    Always returns 0. */
 
-function _twoConsecutivePlusTokensAreBad( $eval )
+function _plusPlusTokenIsNotAllowed( $eval )
 {
     do
     {
