@@ -1293,7 +1293,7 @@ function _evaluateExponentiation( $eval,
 
     // type check is made by `_evaluatePow()`
 
-    $exponent = _coreParseHigher( $eval, 1, "Mul", true, $rightOp );
+    $exponent = _coreParseHigher( $eval, null, "Mul", true, $rightOp );
     if( $eval->error ) return null;
 
     $result = _evaluatePow( $eval, $base, $exponent );
