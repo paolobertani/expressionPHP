@@ -59,17 +59,29 @@ namespace Kalei\Expression;
 
 const tEOF = 000,
       tERR = 010,
+
       tVal = 020,
+
       tCOM = 030,
       tRBC = 031,
       tRBO = 032,
+
       tAnd = 040,
-      tDiv = 041,
-      tExp = 042,
-      tNot = 043,
-      tFct = 044,
-      tSub = 045,
-      tSum = 046,
+      tOr_ = 041,
+      tDiv = 042,
+      tExp = 043,
+      tNot = 044,
+      tFct = 045,
+      tSub = 046,
+      tSum = 047,
+
+      tEql = 050,
+      tNEq = 051,
+      tGrt = 052,
+      tSml = 053,
+      tEGr = 054,
+      tESm = 055,
+
       tAvg = 100,
       tB2h = 101,
       tChr = 102,
