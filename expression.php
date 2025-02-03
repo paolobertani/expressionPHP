@@ -1547,11 +1547,6 @@ function _parseToken( $eval,
             $eval->cursor++;
             break;
 
-        case "!": // if it trails a number then `Factorial` otherwise `Not`
-            $token = is_int( $leftValue ) ? tFct : tNot;
-            $eval->cursor++;
-            break;
-
         case "&":
             $token = tAnd;
             $eval->cursor++;
@@ -1566,6 +1561,51 @@ function _parseToken( $eval,
             $eval->cursor++;
             if( ( $eval->expression )[ $eval->cursor ] === "|" ) // || is an alias of |
             {
+                $eval->cursor++;
+            }
+            break;
+
+        case "=": // ==
+            if( ( $eval->expression )[ $eval->cursor + 1 ] === "=" )
+            $token = tEql;
+            $eval->cursor += 2;
+            break;
+
+        case "!": // !=
+            if( ( $eval->expression )[ $eval->cursor + 1 ] === "=" )
+            {
+                $token = tNEq;
+                $eval->cursor += 2;
+            }
+            else  // ! (if it trails a number then `Factorial` otherwise `Not`)
+            {
+                $token = is_int( $leftValue ) ? tFct : tNot;
+                $eval->cursor++;
+            }
+            break;
+
+        case ">": // >= or >
+            if( ( $eval->expression )[ $eval->cursor + 1 ] === "=" )
+            {
+                $token = tEGr;
+                $eval->cursor += 2;
+            }
+            else
+            {
+                $token = tGrt;
+                $eval->cursor++;
+            }
+            break;
+
+        case "<": // <= or <
+            if( ( $eval->expression )[ $eval->cursor + 1 ] === "=" )
+            {
+                $token = tESm;
+                $eval->cursor += 2;
+            }
+            else
+            {
+                $token = tSml;
                 $eval->cursor++;
             }
             break;
