@@ -498,7 +498,7 @@ function _coreParse( $eval,
                 return null;
             }
         }
-        elseif( $leftToken === "Or" )
+        elseif( $leftToken === tOr_ )
         {
             if( is_bool( $value ) && is_bool( $result ) )
             {
@@ -511,7 +511,7 @@ function _coreParse( $eval,
             }
         }
     }
-    while( $rightToken === tSum || $rightToken === tSub || $rightToken === "Or" );
+    while( $rightToken === tSum || $rightToken === tSub || $rightToken === tOr_ );
 
     // A round close bracket:
     // check for negative count.
@@ -1562,7 +1562,7 @@ function _parseToken( $eval,
             break;
 
         case "|":
-            $token = "Or";
+            $token = tOr_;
             $eval->cursor++;
             if( ( $eval->expression )[ $eval->cursor ] === "|" ) // || is an alias of |
             {
