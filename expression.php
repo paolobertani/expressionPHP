@@ -4,7 +4,7 @@
 
 expressionPHP
 
-version 0.5
+version 0.6
 
 discrete evaluator of integers, floats, booleans, strings,
                       string functions and integer expressions
