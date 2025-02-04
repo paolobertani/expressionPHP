@@ -420,6 +420,179 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
 
 
 
+/*     `_coreParseLowest()`
+
+   Parses and evaluates expression parts between lowest precedence operators:
+
+   `==` is equal
+   `!=` is not equal
+   `>`  is greater
+   `<`  is smaller
+   `>=`
+   `<=`
+
+   and
+   `)` closed round bracked (decrementing count)
+
+   breakOnRBC, breakOnEOF, breakOnCOMMA define cases where the function must return
+
+   The function is going to be called recursively
+   The function calls `_coreParseLowest()` to parse parts between higher
+   precedence operators. */
+
+
+function _coreParseLowest( $eval,
+                           $breakOnRBC,                   // If open brackets count goes down to this count then exit;
+                           $breakOnEOF,                   // exit if the end of the string is met;
+                           $breakOnCOMMA,                 // exit if a comma is met;
+                          &$tokenThatCausedBreak = null )  // if not null the token/symbol that caused the function to exit;
+{
+    $result = null;
+    $rightToken = tEql;
+
+    do
+    {
+        $leftToken = $rightToken;
+
+        $value = _coreParse( $eval,
+                             null,        // `null` as value lets $rightToken be accepted despite type
+                             tSum,
+                             $rightToken );
+
+        if( $eval->error ) return null;
+
+        /**/if( $leftToken === tEql )
+        {
+            /**/if( $result === null )
+            {
+                $result = $value;
+            }
+            elseif( gettype( $value ) === gettype( $result ) )
+            {
+                $result = ( $result === $value );
+            }
+            else
+            {
+                $eval->error = "left and right values must be of the same type";
+                return null;
+            }
+        }
+        elseif( $leftToken === tNEq )
+        {
+            /**/if( gettype( $value ) === gettype( $result ) )
+            {
+                $result = ( $result !== $value  );
+            }
+            else
+            {
+                $eval->error = "left and right values must be of the same type";
+                return null;
+            }
+        }
+        elseif( $leftToken === tGrt )
+        {
+            /**/if( gettype( $value ) === gettype( $result ) )
+            {
+                $result = ( $result > $value );
+            }
+            else
+            {
+                $eval->error = "left and right values must be of the same type";
+                return null;
+            }
+        }
+        elseif( $leftToken === tSml )
+        {
+            /**/if( gettype( $value ) === gettype( $result ) )
+            {
+                $result = ( $result < $value );
+            }
+            else
+            {
+                $eval->error = "left and right values must be of the same type";
+                return null;
+            }
+        }
+        elseif( $leftToken === tEGr )
+        {
+            /**/if( gettype( $value ) === gettype( $result ) )
+            {
+                $result = ( $result >= $value );
+            }
+            else
+            {
+                $eval->error = "left and right values must be of the same type";
+                return null;
+            }
+        }
+        elseif( $leftToken === tESm )
+        {
+            /**/if( gettype( $value ) === gettype( $result ) )
+            {
+                $result = ( $result <= $value );
+            }
+            else
+            {
+                $eval->error = "left and right values must be of the same type";
+                return null;
+            }
+        }
+    }
+    while( $rightToken === tEql || $rightToken === tNEq || $rightToken === tGrt || $rightToken === tSml || $rightToken === tEGr || $rightToken === tESm );
+
+    // A round close bracket:
+    // check for negative count.
+
+    if( $rightToken === tRBC )
+    {
+        $eval->RBC--;
+        if( $eval->RBC < 0 )
+        {
+            $eval->error = "unexpected close round bracket";
+            return null;
+        }
+    }
+
+    // Return the token that caused the function to exit
+
+    $tokenThatCausedBreak = $rightToken;
+
+    // Check if must exit(return)
+
+    if( ( $eval->RBC === $breakOnRBC ) || ( $breakOnEOF && $rightToken === tEOF ) || ( $breakOnCOMMA && $rightToken === tCOM ) )
+    {
+        return $result;
+    }
+
+    // If don't have to exit then there is an error in the expression
+
+    switch( $rightToken )
+    {
+        case tEOF:
+            $eval->error = "unexpected end of expression";
+            break;
+
+        case tRBC:
+            $eval->error = "unexpected close round bracket";
+            break;
+
+        case tCOM:
+            $eval->error = "unexpected comma";
+            break;
+
+        default:
+            $eval->error = "unexpected symbol";
+            break;
+    }
+
+    return null;
+}
+
+
+
+
+
+
 /*     `_coreParse()`
 
    Parses and evaluates expression parts between lower precedence operators:
@@ -437,6 +610,7 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
    The function is going to be called recursively
    The function calls `_coreParseHiger()` to parse parts between higher
    precedence operators. */
+
 
 function _coreParse( $eval,
                      $breakOnRBC,                   // If open brackets count goes down to this count then exit;
@@ -560,7 +734,6 @@ function _coreParse( $eval,
 
     return null;
 }
-
 
 
 
