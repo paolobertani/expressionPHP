@@ -101,7 +101,8 @@ const tEOF = 000,
       tSst = 117,
       tStp = 118,
       tTrm = 119,
-      tFac = 120;
+      tFac = 120,
+      tIf_ = 121;
 
 
 
@@ -132,7 +133,8 @@ const FUNCTIONS = [
     "ltrim"         => tLtr,
     "rtrim"         => tRtr,
     "sha1"          => tSha,
-    "md5"           => tMd5
+    "md5"           => tMd5,
+    "if"            => tIf_
 ];
 
 
@@ -993,6 +995,40 @@ function _evaluateFunction( $eval, $func )
 
             $result = _evaluatePow( $eval, $base, $exponent );
             if( $result === null ) return null;
+            break;
+
+
+
+        case tIf_: // both expressions (for condition verified and not verified) are always evaluated
+            $condition = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_bool( $condition ) )
+            {
+                $eval->error = "expected boolean (condition)";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $resultTrue = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $resultFalse = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+
+            $result = $condition ? $resultTrue : $resultFalse;
             break;
 
 
