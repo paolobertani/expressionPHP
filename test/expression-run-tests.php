@@ -356,6 +356,33 @@ function RunTests()
     Test( __LINE__, Success, " booo ", "trim(\"** booo ****\", \"*\" )   " );
 
 
+    // Boolean expressions
+
+    Test( __LINE__, Success, true,      "2==2" );
+    Test( __LINE__, Success, false,     "2!=2" );
+    Test( __LINE__, Success, false,     "2==3" );
+    Test( __LINE__, Success, true,      "2!=3" );
+    Test( __LINE__, Success, true,      "3+1>1+1*2" );
+    Test( __LINE__, Success, true,      "2<3" );
+    Test( __LINE__, Success, true,      "2<=3" );
+    Test( __LINE__, Success, true,      "3>=2" );
+    Test( __LINE__, Success, true,      "3==3==true" );
+    Test( __LINE__, Failure, null,      "2==true" );
+    Test( __LINE__, Failure, null,      "3==3==3" );
+
+
+    // If
+
+    Test( __LINE__, Success, true,      "if(3==3,\"foo\",\"bar\") == \"foo\"" );
+    Test( __LINE__, Success, "bar",     "if(2==3,\"foo\",\"bar\")" );
+
+
+
+    // Function with exceeding parameter
+
+    Test( __LINE__, Failure, null, "len(\"pippo\",2)" );
+
+
     // ChatGPT generated
 
     Test( __LINE__, Success, 6, 'strpos("Hello World", "World")' );
