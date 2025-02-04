@@ -4,7 +4,7 @@
 
 expressionPHP
 
-version 0.4
+version 0.5
 
 discrete evaluator of integers, floats, booleans, strings,
                       string functions and integer expressions
@@ -352,7 +352,7 @@ function expression( $expression, &$error = null, $parameters = null, &$elapsedT
 
     if( $eval->error === "" )
     {
-        $result = _coreParse( $eval, -1, true, false, $tokenThatCausedBreak );
+        $result = _coreParseLowest( $eval, -1, true, false, $tokenThatCausedBreak );
     }
 
 
@@ -613,13 +613,12 @@ function _coreParseLowest( $eval,
 
 
 function _coreParse( $eval,
-                     $breakOnRBC,                   // If open brackets count goes down to this count then exit;
-                     $breakOnEOF,                   // exit if the end of the string is met;
-                     $breakOnCOMMA,                 // exit if a comma is met;
-                    &$tokenThatCausedBreak = null )  // if not null the token/symbol that caused the function to exit;
+                     $leftValue, // The value (already fetched) on the left to be computed with what follows
+                     $op,        // the operation to perform;
+                    &$leftOp )   // RETURN: addens are over, this is the next lower-priority operator (token).
 {
     $result = null;
-    $rightToken = tSum;
+    $rightToken = $op;
 
     do
     {
@@ -630,6 +629,7 @@ function _coreParse( $eval,
                                    tMul,
                                    false,
                                    $rightToken );
+
         if( $eval->error ) return null;
 
         /**/if( $leftToken === tSum )
@@ -687,52 +687,12 @@ function _coreParse( $eval,
     }
     while( $rightToken === tSum || $rightToken === tSub || $rightToken === tOr_ );
 
-    // A round close bracket:
-    // check for negative count.
-
-    if( $rightToken === tRBC )
-    {
-        $eval->RBC--;
-        if( $eval->RBC < 0 )
-        {
-            $eval->error = "unexpected close round bracket";
-            return null;
-        }
-    }
 
     // Return the token that caused the function to exit
 
-    $tokenThatCausedBreak = $rightToken;
+    $leftOp = $rightToken;
 
-    // Check if must exit(return)
-
-    if( ( $eval->RBC === $breakOnRBC ) || ( $breakOnEOF && $rightToken === tEOF ) || ( $breakOnCOMMA && $rightToken === tCOM ) )
-    {
-        return $result;
-    }
-
-    // If don't have to exit then there is an error in the expression
-
-    switch( $rightToken )
-    {
-        case tEOF:
-            $eval->error = "unexpected end of expression";
-            break;
-
-        case tRBC:
-            $eval->error = "unexpected close round bracket";
-            break;
-
-        case tCOM:
-            $eval->error = "unexpected comma";
-            break;
-
-        default:
-            $eval->error = "unexpected symbol";
-            break;
-    }
-
-    return null;
+    return $result;
 }
 
 
@@ -806,7 +766,7 @@ function _coreParseHigher( $eval,
         {
             $eval->RBC++;
 
-            $rightValue = _coreParse( $eval, $eval->RBC - 1, false, false );
+            $rightValue = _coreParseLowest( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return null;
 
             $token = tVal;
@@ -893,11 +853,6 @@ function _coreParseHigher( $eval,
             }
             else
             {
-                echo "***cursor = $eval->cursor\n\n$eval->expression\n";
-                var_export( $leftValue ); echo "\n";
-                var_export( $rightValue ); echo "\n";
-                echo "***\n\n";
-
                 $eval->error = "left and right operands must be both integers or float";
                 return null;
             }
@@ -987,7 +942,7 @@ function _evaluateFunction( $eval, $func )
     switch( $func )
     {
         case tFac:
-            $operand = _coreParse( $eval, $eval->RBC - 1, false, false );
+            $operand = _coreParseLowest( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return null;
 
             if( ! is_int( $operand ) )
@@ -1018,7 +973,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tPow:
-            $base = _coreParse( $eval, -1, false, true );
+            $base = _coreParseLowest( $eval, -1, false, true );
             if( $eval->error ) return null;
 
             if( ! is_int( $base ) && ! is_float( $base ))
@@ -1027,7 +982,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            $exponent = _coreParse( $eval, $eval->RBC - 1, false, false );
+            $exponent = _coreParseLowest( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return null;
 
             if( ! is_int( $exponent ) && ! is_float( $exponent ))
@@ -1043,7 +998,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tMax:
-            $greatestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $greatestValue = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_int( $greatestValue ) && ! is_float( $greatestValue ) )
@@ -1054,7 +1009,7 @@ function _evaluateFunction( $eval, $func )
 
             while( $tokenThatCausedBreak === tCOM )
             {
-                $greaterValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $greaterValueMaybe = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( gettype( $greaterValueMaybe ) !== gettype( $greatestValue ) )
@@ -1074,7 +1029,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tMin:
-            $smallestValue = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $smallestValue = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_int( $smallestValue ) && ! is_float( $smallestValue ) )
@@ -1085,7 +1040,7 @@ function _evaluateFunction( $eval, $func )
 
             while( $tokenThatCausedBreak === tCOM )
             {
-                $smallerValueMaybe = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $smallerValueMaybe = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( gettype( $smallerValueMaybe ) !== gettype( $smallestValue ) )
@@ -1105,7 +1060,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tAvg:
-            $total = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $total = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_int( $total ) && ! is_float( $total ) )
@@ -1117,7 +1072,7 @@ function _evaluateFunction( $eval, $func )
             $count = 1;
             while( $tokenThatCausedBreak === tCOM )
             {
-                $value = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $value = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( gettype( $value ) !== gettype( $total ) )
@@ -1136,7 +1091,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tLen:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_string( $text ) )
@@ -1151,7 +1106,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tTrm:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_string( $text ) )
@@ -1162,7 +1117,7 @@ function _evaluateFunction( $eval, $func )
 
             if( $tokenThatCausedBreak === tCOM )
             {
-                $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $charsToTrim = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( ! is_string( $charsToTrim ) )
@@ -1182,7 +1137,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tSst:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_string( $text ) )
@@ -1197,7 +1152,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            $startIndex = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $startIndex = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_int( $startIndex ) )
@@ -1212,7 +1167,7 @@ function _evaluateFunction( $eval, $func )
             }
             elseif( $tokenThatCausedBreak === tCOM )
             {
-                $charactersCount = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $charactersCount = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( ! is_int( $charactersCount ) )
@@ -1233,7 +1188,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tStp:
-            $haystack = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $haystack = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_string( $haystack ) )
@@ -1248,7 +1203,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            $needle = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $needle = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error ) return null;
 
             if( ! is_string( $needle ) )
@@ -1259,7 +1214,7 @@ function _evaluateFunction( $eval, $func )
 
             if( $tokenThatCausedBreak === tCOM )
             {
-                $offset = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $offset = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( ! is_int( $offset ) )
@@ -1284,7 +1239,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tB2h:
-            $bin = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $bin = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1301,7 +1256,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tChr:
-            $ascii = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $ascii = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1319,7 +1274,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tH2b:
-            $hex = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $hex = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1337,7 +1292,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tHte:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1354,7 +1309,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tMd5:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1372,7 +1327,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tOrd:
-            $char = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $char = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1390,7 +1345,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tLtr:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1404,7 +1359,7 @@ function _evaluateFunction( $eval, $func )
 
             if( $tokenThatCausedBreak === tCOM )
             {
-                $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $charsToTrim = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( ! is_string( $charsToTrim ) )
@@ -1424,7 +1379,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tRtr:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
@@ -1438,7 +1393,7 @@ function _evaluateFunction( $eval, $func )
 
             if( $tokenThatCausedBreak === tCOM )
             {
-                $charsToTrim = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                $charsToTrim = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
                 if( $eval->error ) return null;
 
                 if( ! is_string( $charsToTrim ) )
@@ -1458,7 +1413,7 @@ function _evaluateFunction( $eval, $func )
 
 
         case tSha:
-            $text = _coreParse( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
             if( $eval->error )
             {
                 return null;
