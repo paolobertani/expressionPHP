@@ -102,7 +102,9 @@ const tEOF = 000,
       tStp = 118,
       tTrm = 119,
       tFac = 120,
-      tIf_ = 121;
+      tIf_ = 121,
+      tBtw = 122,
+      tRpl = 123;
 
 
 
@@ -134,7 +136,10 @@ const FUNCTIONS = [
     "rtrim"         => tRtr,
     "sha1"          => tSha,
     "md5"           => tMd5,
-    "if"            => tIf_
+    "if"            => tIf_,
+    "between"       => tBtw,
+    "replace"       => tRpl,
+    "str_replace"   => tRpl
 ];
 
 
@@ -1216,6 +1221,156 @@ function _evaluateFunction( $eval, $func )
                 $eval->error = "expected integer or close round bracket";
                 return null;
             }
+            break;
+
+
+
+        case tBtw: // if `start` is empty starts from the beginning; if `end` is empty get the text up to the end
+            $text = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $text ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $start = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $start ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $end = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $end ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = "";
+            $found  = true;
+
+            $startPos = $start === "" ? 0 : strpos( $text, $start );
+            if( $startPos === false )
+            {
+                $result = "";
+                $found  = false;
+            }
+            else
+            {
+                $startPos += strlen( $start );
+
+                $endPos = $end === "" ? strlen( $text ) : strpos( $text, $end, $startPos );
+                if( $endPos === false )
+                {
+                    $result = "";
+                }
+                else
+                {
+                    $result = substr( $text, $startPos, $endPos - $startPos );
+                }
+            }
+
+            // wrappers will be added only if start/end markers were found
+
+            $startWrap = "";
+            $endWrap   = "";
+
+            if( $tokenThatCausedBreak === tCOM )
+            {
+                $startWrap = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                if( $eval->error ) return null;
+
+                if( ! is_string( $startWrap ) )
+                {
+                    $eval->error = "expected string";
+                    return null;
+                }
+
+                if( $tokenThatCausedBreak === tCOM )
+                {
+                    $endWrap = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+                    if( $eval->error ) return null;
+
+                    if( ! is_string( $endWrap ) )
+                    {
+                        $eval->error = "expected string";
+                        return null;
+                    }
+                }
+            }
+
+            if( $found )
+            {
+                $result = $startWrap . $result . $endWrap;
+            }
+            else
+            {
+                $result = "";
+            }
+            break;
+
+
+
+        case tRpl:
+            $search = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $search ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $replace = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $replace ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $subject = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_string( $subject ) )
+            {
+                $eval->error = "expected string";
+                return null;
+            }
+
+            $result = str_replace( $search, $replace, $subject );
             break;
 
 
