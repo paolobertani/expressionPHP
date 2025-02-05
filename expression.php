@@ -150,35 +150,32 @@ const FUNCTIONS = [
 
 function main( $argv )
 {
-    if( count( get_included_files() ) === 1 )
+    if( ! isset( $argv[1] ) )
     {
-        if( ! isset( $argv[1] ) )
-        {
-            echo "expected expression to evaluate as first (and only) parameter\n";
-            exit();
-        }
-
-        $inStyleOutError = "rainbow"; // error message style
-        $result = expression( $argv[1], $inStyleOutError );
-        if( $inStyleOutError )
-        {
-            echo "$inStyleOutError\n";
-        }
-        else
-        {
-            $type = gettype( $result );
-            if( $type === "double" ) $type = "float, 64 bit";
-            if( $type === "integer") $type = "signed integer, 64 bit";
-            echo "Error:  none\nType:   $type\n";
-            if( $type === 'boolean' )
-            {
-                $result = $result ? 'true' : 'false';
-            }
-            echo "Result: $result\n";
-        }
-        exit;
+        echo "expected expression to evaluate as first (and only) parameter\n";
+        exit();
     }
-} main( $argv );
+
+    $inStyleOutError = "rainbow"; // error message style
+    $result = expression( $argv[1], $inStyleOutError );
+    if( $inStyleOutError )
+    {
+        echo "$inStyleOutError\n";
+    }
+    else
+    {
+        $type = gettype( $result );
+        if( $type === "double" ) $type = "float, 64 bit";
+        if( $type === "integer") $type = "signed integer, 64 bit";
+        echo "Error:  none\nType:   $type\n";
+        if( $type === 'boolean' )
+        {
+            $result = $result ? 'true' : 'false';
+        }
+        echo "Result: $result\n";
+    }
+    exit;
+} if( count( get_included_files() ) === 1 && isset( $argv ) ) main( $argv );
 
 
 
