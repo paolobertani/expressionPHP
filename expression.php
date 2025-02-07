@@ -4,7 +4,7 @@
 
 expressionPHP
 
-version 0.6
+version 0.7
 
 discrete evaluator of integers, floats, booleans, strings,
                       string functions and integer expressions
@@ -45,6 +45,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     `TODO` things to do
 
 
+    TODO: fix bitwise ops VS arithmetic ops precedence - see TOFIX in tests
+
+
 */
 
 
@@ -57,30 +60,32 @@ namespace Kalei\Expression;
 // tokens
 //
 
-const tEOF = 000,
-      tERR = 010,
+const tEOF =   0,
+      tERR =  10,
 
-      tVal = 020,
+      tVal =  20,
 
-      tCOM = 030,
-      tRBC = 031,
-      tRBO = 032,
+      tCOM =  30,
+      tRBC =  31,
+      tRBO =  32,
 
-      tAnd = 040,
-      tOr_ = 041,
-      tDiv = 042,
-      tExp = 043,
-      tNot = 044,
-      tFct = 045,
-      tSub = 046,
-      tSum = 047,
+      tAnd =  40,
+      tOr_ =  41,
+      tDiv =  42,
+      tExp =  43,
+      tNot =  44,
+      tFct =  45,
+      tSub =  46,
+      tSum =  47,
+      tBOr =  48,
+      tBAn =  49,
 
-      tEql = 050,
-      tNEq = 051,
-      tGrt = 052,
-      tSml = 053,
-      tEGr = 054,
-      tESm = 055,
+      tEql =  50,
+      tNEq =  51,
+      tGrt =  52,
+      tSml =  53,
+      tEGr =  54,
+      tESm =  55,
 
       tAvg = 100,
       tB2h = 101,
@@ -680,7 +685,7 @@ function _coreParse( $eval,
         {
             if( is_bool( $value ) && is_bool( $result ) )
             {
-                $result = (bool) ( $result | $value );
+                $result = (bool) ( $result || $value );
             }
             else
             {
@@ -688,8 +693,20 @@ function _coreParse( $eval,
                 return null;
             }
         }
+        elseif( $leftToken === tBOr )
+        {
+            if( is_int( $value ) && is_int( $result ) )
+            {
+                $result = (int) ( $result | $value );
+            }
+            else
+            {
+                $eval->error = "left and right operands must be integers";
+                return null;
+            }
+        }
     }
-    while( $rightToken === tSum || $rightToken === tSub || $rightToken === tOr_ );
+    while( $rightToken === tSum || $rightToken === tSub || $rightToken === tOr_ || $rightToken === tBOr );
 
 
     // Return the token that caused the function to exit
@@ -892,16 +909,28 @@ function _coreParseHigher( $eval,
             {
                 if( $not === 0 )
                 {
-                    $leftValue = (bool) ( $leftValue & $rightValue );
+                    $leftValue = (bool) ( $leftValue && $rightValue );
                 }
                 else
                 {
-                    $leftValue = (bool) ( $leftValue & ( ! $rightValue ) );
+                    $leftValue = (bool) ( $leftValue && ( ! $rightValue ) );
                 }
             }
             else
             {
                 $eval->error = "left and right operands must be booleans";
+                return null;
+            }
+        }
+        elseif( $op === tBAn )
+        {
+            if( is_int( $leftValue ) && is_int( $rightValue ) )
+            {
+                $leftValue = (int) ( $leftValue & $rightValue );
+            }
+            else
+            {
+                $eval->error = "left and right operands must be integers";
                 return null;
             }
         }
@@ -914,7 +943,7 @@ function _coreParseHigher( $eval,
         // ...unless an exponent is evaluated
         // (because exponentiation ^ operator have higher precedence)
     }
-    while( ( $op === tMul || $op === tIdv || $op === tDiv || $op === tAnd ) && ! $isExponent );
+    while( ( $op === tMul || $op === tIdv || $op === tDiv || $op === tAnd || $op === tBAn ) && ! $isExponent );
 
     $leftOp = $op;
 
@@ -1864,19 +1893,21 @@ function _parseToken( $eval,
             break;
 
         case "&":
-            $token = tAnd;
+            $token = tBAn; // Bitwise AND &
             $eval->cursor++;
             if( ( $eval->expression )[ $eval->cursor ] === "&" ) // && is an alias of &
             {
+                $token = tAnd; // Logical AND &&
                 $eval->cursor++;
             }
             break;
 
         case "|":
-            $token = tOr_;
+            $token = tBOr; // Bitwise OR |
             $eval->cursor++;
-            if( ( $eval->expression )[ $eval->cursor ] === "|" ) // || is an alias of |
+            if( ( $eval->expression )[ $eval->cursor ] === "|" )
             {
+                $token = tOr_; // Logical OR ||
                 $eval->cursor++;
             }
             break;

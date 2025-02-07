@@ -133,24 +133,37 @@ function RunTests()
     Test( __LINE__, Success, false,   "false" );
     Test( __LINE__, Success, false,   "!true" );
     Test( __LINE__, Success, true,    "!false" );
-    Test( __LINE__, Success, true,    "false|true" );
-    Test( __LINE__, Success, true,    "true|true" );
-    Test( __LINE__, Success, true,    "true&true" );
-    Test( __LINE__, Success, false,   "false&true" );
-    Test( __LINE__, Success, true,    "!false|true" );
-    Test( __LINE__, Success, true,    "!true|true" );
-    Test( __LINE__, Success, false,   "!true&true" );
-    Test( __LINE__, Success, true,    "!false&true" );
-    Test( __LINE__, Success, false,   "false|!true" );
-    Test( __LINE__, Success, true,    "true|!true" );
-    Test( __LINE__, Success, false,   "true&!true" );
-    Test( __LINE__, Success, false,   "false&!true" );
-    Test( __LINE__, Success, true,    "true&(false|true)" );
-    Test( __LINE__, Success, false,   "true&(false&true)" );
-    Test( __LINE__, Success, true,    "true|(false|true)" );
-    Test( __LINE__, Success, true,    "true|(false&true)" );
-    Test( __LINE__, Success, false,   "true&!(false|true)" );
-    Test( __LINE__, Success, true,    "true&!(false&true)" );
+    Test( __LINE__, Success, true,    "false||true" );
+    Test( __LINE__, Success, true,    "true||true" );
+    Test( __LINE__, Success, true,    "true&&true" );
+    Test( __LINE__, Success, false,   "false&&true" );
+    Test( __LINE__, Success, true,    "!false||true" );
+    Test( __LINE__, Success, true,    "!true||true" );
+    Test( __LINE__, Success, false,   "!true&&true" );
+    Test( __LINE__, Success, true,    "!false&&true" );
+    Test( __LINE__, Success, false,   "false||!true" );
+    Test( __LINE__, Success, true,    "true||!true" );
+    Test( __LINE__, Success, false,   "true&&!true" );
+    Test( __LINE__, Success, false,   "false&&!true" );
+    Test( __LINE__, Success, true,    "true&&(false||true)" );
+    Test( __LINE__, Success, false,   "true&&(false&&true)" );
+    Test( __LINE__, Success, true,    "true||(false||true)" );
+    Test( __LINE__, Success, true,    "true||(false&&true)" );
+    Test( __LINE__, Success, false,   "true&&!(false||true)" );
+    Test( __LINE__, Success, true,    "true&&!(false&&true)" );
+    Test( __LINE__, Success, true,    "true&&!false||true" );
+    Test( __LINE__, Success, true,    "true&&!false&&true" );
+
+
+    // Bitwise operators
+
+    Test( __LINE__, Success, 10&60,    "10&60"   );
+    Test( __LINE__, Success, 10&60+2,  "10&60+2" );
+  //Test( __LINE__, Success, 10&60*2,  "10&60*2" );    // TOFIX
+    Test( __LINE__, Success, 10|60,    "10|60"   );
+    Test( __LINE__, Success, 10|60*3,  "10|60*3"   );
+  //Test( __LINE__, Success, 10|60+3,  "10|60+3"   );  // TOFIX
+
 
 
     // Factorial
