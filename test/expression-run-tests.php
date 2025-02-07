@@ -314,6 +314,9 @@ function RunTests()
 
     // Strings
 
+    Test( __LINE__, Success, "FOObar", "\"FOO\"+\"\"+\"bar\"" );
+    Test( __LINE__, Success, "FOO", "\"FOO\"+\"\"+\"\"" );
+
     Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 3 )" );
     Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 3, 3 )" );
     Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", -3, 3 )" );
@@ -329,8 +332,21 @@ function RunTests()
     Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", 4 )" );
     Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", strpos( \"fooBAR\", \"BAR\" ) + 2 )" );
     Test( __LINE__, Failure, null, "strpos( \"fooBAR BAR\", \"BAR\", 4, 1)" );
+    Test( __LINE__, Success, -1,   "strpos( \"fooBAR\", \"BAZ\" )" );
 
-    Test( __LINE__, Success, "FOObar", "\"FOO\"+\"\"+\"bar\"" );
+    Test( __LINE__, Success, "  foo baz foo baz baz", "replace( \"bar\", \"baz\", \"  foo bar foo bar baz\" )" );
+    Test( __LINE__, Success, "  foo baz foo baz baz", "str_replace( \"bar\", \"baz\", \"  foo bar foo bar baz\" )" );
+
+    Test( __LINE__, Success, "barbaz",                "between( \"  [barbaz] [bar][ \", \"[\", \"]\" )" );
+    Test( __LINE__, Success, "(barbaz)",              "between( \"  [barbaz]  bar [ \", \"[\", \"]\", \"(\", \")\" )" );
+    Test( __LINE__, Success, "",                      "between( \"  {barbaz}  bar [ \", \"[\", \"]\" )" );
+    Test( __LINE__, Success, "()",                    "between( \"  {barbaz}  bar [ \", \"[\", \"]\", \"(\", \")\" )" );
+    Test( __LINE__, Success, "barbaz",                "between( \"  [[barbaz]]bar [ \", \"[[\", \"]]\" )" );
+    Test( __LINE__, Success, "(barbaz)",              "between( \"  [[barbaz]]bar [ \", \"[[\", \"]]\", \"(\", \")\" )" );
+    Test( __LINE__, Success, "   barbaz",             "between( \"   barbaz]  bar [ \", \"\", \"]\" )" );
+    Test( __LINE__, Success, "barbaz",                "between( \"           [barbaz\", \"[\", \"\" )" );
+    Test( __LINE__, Success, "(   barbaz)",           "between( \"   barbaz]  bar [ \", \"\", \"]\", \"(\", \")\" )" );
+    Test( __LINE__, Success, "(barbaz)",              "between( \"           [barbaz\", \"[\", \"\", \"(\", \")\" )" );
 
 
     // Built-In Functions
