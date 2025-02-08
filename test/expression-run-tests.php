@@ -476,8 +476,16 @@ function RunTests()
 
     if( $fails === 0 )
     {
-        echo "All $testCount tests passed!\nElapsed time: " . number_format( $totalTime / 1000, 3 ) . " ms.\n";
-        arsort( $singleTime ); echo "Worst at line " . key( $singleTime ) . " took " . reset( $singleTime ) . " µs.\n";
+        $text = "\nexpressionPHP Version: " . \Kalei\Expression\version . "\n\n";
+        $text .= "All $testCount tests passed!\n\nElapsed time: " . number_format( $totalTime / 1000, 3 ) . " ms.\n";
+        $text .= "Average time per test: " . round( $totalTime / $testCount ) . " µs.\n";
+        arsort( $singleTime );
+        $text .= "Worst time at line " . key( $singleTime ) . ": " . reset( $singleTime ) . " µs.\n\n";
+        echo $text;
+        if( substr( __DIR__, -19, 19 ) === "/expressionPHP/test" )
+        {
+            file_put_contents( __DIR__ . "/test-outcome.txt", $text );
+        }
     }
     else
     {

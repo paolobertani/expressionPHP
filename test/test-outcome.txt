@@ -1,0 +1,9 @@
+
+expressionPHP Version: 0.7
+
+All 315 tests passed!
+
+Elapsed time: 5.351 ms.
+Average time per test: 17 µs.
+Worst time at line 53: 638 µs.
+

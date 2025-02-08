@@ -4,8 +4,6 @@
 
 expressionPHP
 
-version 0.7
-
 discrete evaluator of integers, floats, booleans, strings,
                       string functions and integer expressions
 
@@ -53,6 +51,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace Kalei\Expression;
+
+
+
+//
+// version
+//
+
+const version = 0.7;
 
 
 
@@ -174,15 +180,16 @@ function main( $argv )
     }
     else
     {
+        echo "Version: " . version . "\n";
         $type = gettype( $result );
         if( $type === "double" ) $type = "float, 64 bit";
-        if( $type === "integer") $type = "signed integer, 64 bit";
-        echo "Error:  none\nType:   $type\n";
+        if( $type === "integer") $type = "integer signed, 64 bit";
+        echo "Error:   none\nType:    $type\n";
         if( $type === 'boolean' )
         {
             $result = $result ? 'true' : 'false';
         }
-        echo "Result: $result\n";
+        echo "Result:  $result\n";
     }
     exit;
 } if( count( get_included_files() ) === 1 && isset( $argv ) ) main( $argv );
