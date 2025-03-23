@@ -1174,7 +1174,7 @@ function _evaluateFunction( $eval, $func )
                 return null;
             }
 
-            $result = strlen( $text );
+            $result = mb_strlen( $text );
             break;
 
 
@@ -1237,7 +1237,7 @@ function _evaluateFunction( $eval, $func )
 
             if( $tokenThatCausedBreak === tRBC )
             {
-                $result = substr( $text, $startIndex );
+                $result = mb_substr( $text, $startIndex );
             }
             elseif( $tokenThatCausedBreak === tCOM )
             {
@@ -1250,7 +1250,7 @@ function _evaluateFunction( $eval, $func )
                     return null;
                 }
 
-                $result = substr( $text, $startIndex, $charactersCount );
+                $result = mb_substr( $text, $startIndex, $charactersCount );
             }
             else
             {
@@ -1304,7 +1304,7 @@ function _evaluateFunction( $eval, $func )
             $result = "";
             $found  = true;
 
-            $startPos = $start === "" ? 0 : strpos( $text, $start );
+            $startPos = $start === "" ? 0 : mb_strpos( $text, $start );
             if( $startPos === false )
             {
                 $result = "";
@@ -1314,14 +1314,14 @@ function _evaluateFunction( $eval, $func )
             {
                 $startPos += strlen( $start );
 
-                $endPos = $end === "" ? strlen( $text ) : strpos( $text, $end, $startPos );
+                $endPos = $end === "" ? mb_strlen( $text ) : mb_strpos( $text, $end, $startPos );
                 if( $endPos === false )
                 {
                     $result = "";
                 }
                 else
                 {
-                    $result = substr( $text, $startPos, $endPos - $startPos );
+                    $result = mb_substr( $text, $startPos, $endPos - $startPos );
                 }
             }
 
@@ -1447,11 +1447,11 @@ function _evaluateFunction( $eval, $func )
                     return null;
                 }
 
-                $result = strpos( $haystack, $needle, $offset );
+                $result = mb_strpos( $haystack, $needle, $offset );
             }
             else
             {
-                $result = strpos( $haystack, $needle );
+                $result = mb_strpos( $haystack, $needle );
             }
 
             if( $result === false )
