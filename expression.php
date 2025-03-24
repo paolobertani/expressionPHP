@@ -981,6 +981,39 @@ function _evaluateFunction( $eval, $func )
 
     switch( $func )
     {
+        case tIf_: // both expressions are always evaluated
+            $condition = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( ! is_bool( $condition ) )
+            {
+                $eval->error = "expected boolean (condition)";
+                return null;
+            }
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $resultTrue = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            if( $tokenThatCausedBreak !== tCOM )
+            {
+                $eval->error = "expected comma";
+                return null;
+            }
+
+            $resultFalse = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error ) return null;
+
+            $result = $condition ? $resultTrue : $resultFalse;
+            break;
+
+
+
         case tFac:
             $operand = _coreParseLowest( $eval, $eval->RBC - 1, false, false );
             if( $eval->error ) return null;
@@ -1033,40 +1066,6 @@ function _evaluateFunction( $eval, $func )
 
             $result = _evaluatePow( $eval, $base, $exponent );
             if( $result === null ) return null;
-            break;
-
-
-
-        case tIf_: // both expressions (for condition verified and not verified) are always evaluated
-            $condition = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return null;
-
-            if( ! is_bool( $condition ) )
-            {
-                $eval->error = "expected boolean (condition)";
-                return null;
-            }
-
-            if( $tokenThatCausedBreak !== tCOM )
-            {
-                $eval->error = "expected comma";
-                return null;
-            }
-
-            $resultTrue = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return null;
-
-            if( $tokenThatCausedBreak !== tCOM )
-            {
-                $eval->error = "expected comma";
-                return null;
-            }
-
-            $resultFalse = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
-            if( $eval->error ) return null;
-
-
-            $result = $condition ? $resultTrue : $resultFalse;
             break;
 
 
