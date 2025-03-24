@@ -115,7 +115,11 @@ const tEOF =   0,
       tFac = 120,
       tIf_ = 121,
       tBtw = 122,
-      tRpl = 123;
+      tRpl = 123,
+      tInt = 124,
+      tStr = 125,
+      tFlt = 126,
+      tBol = 127;
 
 
 
@@ -150,7 +154,11 @@ const FUNCTIONS = [
     "if"            => tIf_,
     "between"       => tBtw,
     "replace"       => tRpl,
-    "str_replace"   => tRpl
+    "str_replace"   => tRpl,
+    "int"           => tInt,
+    "str"           => tStr,
+    "float"         => tFlt,
+    "bool"          => tBol
 ];
 
 
@@ -1649,7 +1657,62 @@ function _evaluateFunction( $eval, $func )
             }
 
             $result = sha1( $text );
-            break ;
+            break;
+
+
+
+        case tInt:
+            $value = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            $result = intval( $value );
+            break;
+
+
+
+        case tStr:
+            $value = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            $result = "$value";
+            break;
+
+
+
+        case tFlt:
+            $value = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            $result = floatval( $value );
+            break;
+
+
+
+        case tBol:
+            $value = _coreParseLowest( $eval, $eval->RBC - 1, false, true, $tokenThatCausedBreak );
+            if( $eval->error )
+            {
+                return null;
+            }
+
+            if( $value === false || $value === 0 || $value === "" )
+            {
+                $result = false;
+            }
+            else
+            {
+                $result = true;
+            }
+            break;
 
 
 
