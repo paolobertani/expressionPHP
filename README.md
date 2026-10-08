@@ -1,24 +1,62 @@
-One example is worth one thousands words...
+expressionPHP - A discrete expression evaluator in PHP
+===
+
+&nbsp;
+
+**expression.php** is a lighweight and fast library to evaluate a discrete expressions stored in a string without the need to use PHP's `eval()` function.
+
+&nbsp;
+
+**expressionPHP** allows computation of:
+
+- integer math
+- floating point math
+- boolean math
+
+String functions and the `.` (concatenation) operator are available to manipulate and evaluate string.
+
+The **`if`** function is available to set a result based on the outcome of a boolean expression.
+
+
+
+&nbsp;Example usage:
 
 ```php
 <?php
 
+// Include in your script
+
 require_once( __DIR__ . "/../expression.php" );
+
+
+// Let's `expression()` be directly available in your namespace
 
 use function \Kalei\Expression\expression;
 
+
+// Set parameters that will be referenced inside the expression
+
 $parameters = [
-    "str_1" => "foo",
-    "str_2" => "BAR",
-    "a_int" => 1
+    "string_1" => "foo",
+    "string_2" => "BAR",
+    "integer_value" => 1
 ];
 
-$expression = "( strlen( substr( str_1 . str_2, 3 ) ) + a_int ) ^ 2"
+
+// This is the expression to evaluate
+
+$expression = "( strlen( substr( string_1 . string_2, 3 ) ) + integer_value ) ^ 2"
+
+
+// Evaluation
 
 $result = expression( $expression,
                       $error,         // returned by ref.
                       $parameters,
                       $elapsedTime ); // returned by ref. (µsecs)
+             
+             
+//              
                          
 if( $result === null )
 {
@@ -29,267 +67,261 @@ else
     echo "$result\n"; // ==> 16
 }
 
-/* step by step:
-
-( strlen( substr( str_1 . str_2, 3 ) ) + a_int ) ^ 2
-( strlen( substr( "foo" . "BAR", 3 ) ) +   1   ) ^ 2
-( strlen( substr( "fooBAR,       3 ) ) +   1   ) ^ 2
-( strlen(            "BAR"           ) +   1   ) ^ 2
-(                     3                +   1   ) ^ 2
-(                     4                        ) ^ 2
-
-4^2 = 16
-
 */
-                                                  
-                                           
 
-// side note: I do code in Allman style  	    
+	    
 ```
 
 ---
 
 &nbsp;
 
-# TL;DR
+### Available Types
 
 &nbsp;
 
-**FIRST ABONINABLE TEMPORARY README FILE GENERATED WITH DUMB CHATGPH**
+**Signed Integer**
+
+`-12345`
 
 &nbsp;
 
-# Expression Function Library
+**Float**
 
-This library provides a collection of PHP functions for string manipulation, mathematical operations, and encoding/decoding. These functions mirror PHP's native capabilities, offering a simple and powerful way to evaluate expressions dynamically.
+`123.456`
+`123.0`
+`.123`
+ 
+The dot `.` qualifies the value as float
 
----
+&nbsp;
 
-## 📋 Table of Contents
-- [Overview](#overview)
-- [Available Functions](#available-functions)
-  - [Mathematical Functions](#mathematical-functions)
-  - [String Manipulation Functions](#string-manipulation-functions)
-  - [Encoding/Decoding Functions](#encodingdecoding-functions)
-- [Available Operators](#-available-operators)
-- [Operator Behavior and Constraints](#-operator-behavior-and-constraints)
-- [Function Definitions](#function-definitions)
-  - [Mathematical Functions](#mathematical-functions-1)
-  - [String Manipulation Functions](#string-manipulation-functions-1)
-  - [Encoding/Decoding Functions](#encodingdecoding-functions-1)
-- [Usage](#usage)
+**String**
 
----
+`"foobar"`
 
-## 📖 Overview
-This library aims to simplify the evaluation of complex expressions by exposing a set of PHP functions that handle various tasks such as string manipulation, encoding, and mathematical operations. Each function is implemented to closely follow PHP's native functions.
+`"foo\"bar"`
 
----
-
-## 🚀 Available Functions
-
-### 🔢 Mathematical Functions
-- `fact` – Factorial of a number
-- `pow` – Power calculation
-- `max` – Maximum of a list of numbers
-- `min` – Minimum of a list of numbers
-- `average` / `avg` – Calculate the average of a list
-
-### 🧵 String Manipulation Functions
-- `length` / `len` / `strlen` – String length
-- `strpos` – Find substring position
-- `trim` – Trim whitespace from both ends of a string
-- `substr` – Extract part of a string
-- `ltrim` – Left trim
-- `rtrim` – Right trim
-
-### 🔐 Encoding/Decoding Functions
-- `bin2hex` – Binary to hexadecimal conversion
-- `hex2bin` – Hexadecimal to binary conversion
-- `chr` – Get character from ASCII value
-- `ord` – Get ASCII value of a character
-- `htmlentities` – Convert special characters to HTML entities
-
----
-
-## ➕ Available Operators
-
-In addition to the provided functions, the following operators are supported for integer and string manipulation:
-
-### 🔢 Integer Operators
-- **`+`** – Addition
-- **`-`** – Subtraction
-- **`*`** – Multiplication
-- **`/`** – Division
-- **`-`** – Unary minus (negation)
-- **`!`** – Factorial (e.g., `5! = 120`)
-- **`^`** – Exponentiation (e.g., `2^3 = 8`)
-
-### 🧵 String Operator
-- **`.`** – String concatenation (e.g., `'Hello' . ' World'` results in `'Hello World'`)
-
----
-
-## ⚠️ Operator Behavior and Constraints
-
-- **Integer Operators** (`+`, `-`, `*`, `/`, `^`, `!`) return **integer results**.
-- Division (`/`) is performed using PHP's `intdiv()` function, ensuring the result is **always an integer** (floor division).
-  ```php
-  intdiv(7, 2);  // Returns 3 (not 3.5)
-  ```
-- Results of all integer operations must fit within a **64-bit signed integer**.
-  - Overflowing results will trigger an error.
-  - Example: `pow(2, 63)` exceeds the 64-bit limit and will result in an error.
-
-**String Operator** (`.`) performs string concatenation and returns a **string**. There are no overflow limits for string operations.
-
----
-
-## 🛠️ Function Definitions
-
-### 🔢 Mathematical Functions
-
-#### `fact`
-```php
-function fact(int $n): int {{
-    if ($n < 0) {{
-        throw new InvalidArgumentException("Factorial is not defined for negative numbers.");
-    }}
-    if ($n === 0 || $n === 1) {{
-        return 1;
-    }}
-    $result = 1;
-    for ($i = 2; $i <= $n; $i++) {{
-        $result *= $i;
-    }}
-    return $result;
-}}
-```
-
-#### `pow`
-```php
-function pow(float $base, float $exponent): float {{
-    return $base ** $exponent;
-}}
-```
-
-#### `max`
-```php
-function max(float ...$values): float {{
-    if (empty($values)) {{
-        throw new InvalidArgumentException("At least one value is required.");
-    }}
-    return max($values);
-}}
-```
-
-#### `min`
-```php
-function min(float ...$values): float {{
-    if (empty($values)) {{
-        throw new InvalidArgumentException("At least one value is required.");
-    }}
-    return min($values);
-}}
-```
-
-#### `average`
-```php
-function average(array $values): float {{
-    if (empty($values)) {{
-        throw new InvalidArgumentException("Array cannot be empty.");
-    }}
-    return array_sum($values) / count($values);
-}}
-```
-
----
-
-### 🧵 String Manipulation Functions
-
-#### `length`
-```php
-function length(string $str): int {{
-    return strlen($str);
-}}
-```
-
-#### `strpos`
-```php
-function strpos(string $haystack, string $needle, int $offset = 0): int {{
-    $pos = strpos($haystack, $needle, $offset);
-    return ($pos !== false) ? $pos : -1;
-}}
-```
-
-#### `trim`
-```php
-function trim(string $str, string $characters = " \\t\\n\\r\\0\\x0B"): string {{
-    return trim($str, $characters);
-}}
-```
-
----
-
-## 🧪 Usage
-1. Import the PHP file into your project.
-2. Call the functions directly, or invoke them through dynamic expression parsing.
-3. Combine them to perform complex string manipulations and mathematical evaluations.
-
----
+&nbsp;
 
 
-## Contributing
+Double quotes must be used to enclose the string
+
+**Boolean**
+
+`true`
+`false`
+
+&nbsp;
+
+### Common Operators
+
+`+`
+
+`-`
+
+`*`
+
+`/` floating point division
+
+Operands must be numbers of the same type and the result is of the same type of operands. Floating point division is allowed only between floats.
+
+`//` integer division; allowed only between integers
+
+`^` power
+
+`!` factorial; allowed only between integers
+
+`|` bitwise or; allowed only between integers
+
+`&` bitwise and; allowed only between integers
+
+`!` unary not; allowed only before a integer
+
+`||` logical or; allowed only between booleans
+
+`&&` logical and; allowed only between booleans
+
+**Comparison operarors**
+
+Operands must be of the same type and result is always boolean
+
+`==`
+
+`!=`
+
+`>`
+
+`<`
+
+`>=`
+
+`<=`
+
+**String concatenation**
+
+`.` allowed only between strings
 
 
-We'd love your help in making **expressionPHP* better! 🚀  
-
-### How You Can Contribute:  
-- **Report bugs** – Let us know if something isn’t working.  
-- **Request features** – Have an idea? We’d love to hear it!  
-- **Fix issues** – Check out the open issues and help solve them.  
-- **Improve documentation** – Spot a typo or something unclear? PRs welcome!
-- **Extend the project** – Implement new functions (also add tests please)
-
----
-
-## 📋 Steps to Contribute:  
-1. **Fork the repository** (top-right of this page).  
-2. **Clone your fork**:  
-   ```bash
-   git clone https://github.com/your-username/project-name.git
-   ```
-3. **Create a new branch** for your feature or fix:  
-   ```bash
-   git checkout -b feature/your-feature
-   ```
-4. **Make changes** and **commit**:  
-   ```bash
-   git commit -m "Add your feature"
-   ```
-5. **Push** to your fork and submit a **Pull Request**:  
-   ```bash
-   git push origin feature/your-feature
-   ```
-
----
-
-## 💡 Need Ideas to Contribute?  
-- Check out the **Issues** tab for tasks labeled `good first issue` or `help wanted`.  
-- Join discussions in the **Discussions** tab or open a new thread.  
 
 
-## About me
+&nbsp;
 
-C.E.O. and Full Stack Developer at Kalei S.r.l. (based in Italy)
+### IF function
 
-I help commercial businesses reduce costs and improve service levels by facilitating access to product information.
+`if( (boolean) expression, (any type) result1, (same type) result2 )` `==>` `(same type) result`
 
-I’m an entrepreneur and software developer.
+`expression` must be of type **boolean**. If the result of the expression is `true` then `result` will be `result1`, otherwise if will be `result2`.
 
-When I’m not working => dad ❤️ freeclimber 🧗‍♂️ freediver 🌊 🥽
+Both `result1` and `result2` are evaluated and must be the of the same type and this will be the type of `result`
 
-### 📜 License
+&nbsp;
+
+### Functions
+
+&nbsp;
+
+`max( (int|float) value1, (int|float) value2, ... )`
+
+The biggest value passed to the function.
+
+All values must be of the same type.
+
+&nbsp;
+
+`min( (int|float) value1, (int|float) value2, ... )`
+
+The smallest value passed to the function.
+
+All values must be of the same type.
+
+&nbsp;
+
+`avg( (int|float) value1, (int|float) value2, ... )`
+
+The average value of the values passed.
+
+All values must be of the same type.
+
+If values are integers the integer division is used to compute the average value.
+
+&nbsp;
+
+`len( (string) str )` `==>` `(int) result`
+
+or `strlen`
+
+The same of PHP's `mb_strlen` function.
+
+&nbsp;
+
+`trim( (string) str [, (string) characters] )` `==>` `(string) result`
+
+The same of PHP's `trim` function.
+
+&nbsp;
+
+`substr( (string) str, (integer) startIndex [, (integer) numberOfCharacters] )` `==>` `(string) result`
+
+The same of PHP's `mb_substr` function.
+
+&nbsp;
+
+`between( (string) str, (string) left, (string) right [, (string) leftPad, (string) rightPad] ) ` `==>` `(string) result`
+
+The substring in `str` between the string `left` and `right`.
+
+If `left` and/or `right` are not found an empty string is returned.
+
+If `left` is an empty string means that left is the beginning of `str`.
+
+If `right` is an empty string means that right is the end of `str`.
+
+Optionally parameters `leftPad` and `rightPad` will be added at the left and the right of the found string.
+
+&nbsp;
+
+`replace( (string) search, (string) replace, (string) subject )` `==>` `(string) result`
+
+The same of PHP's `str_replace` function.
+
+&nbsp;
+
+`strpos( (string) haystack, (string) needle [, (integer) offset] )` `==>` `(int) result`
+
+The same of PHP's `mb_strpos` function, except that if the searched string is not found then `result` is `-1`
+
+&nbsp;
+
+`bin2hex( (string) text )` `==>` `(string) result`
+
+or `bintohex`. The same of PHP's `bin2hex` function.
+
+&nbsp;
+
+`hex2bin( (string) hexString )` `==>` `(string) result`
+
+or `hextobin`. The same of PHP's `hex2bin` function.
+
+&nbsp;
+
+`chr( (int) asciiValue )` `==>` `(string) character`
+
+The same of PHP's `chr` function.
+
+&nbsp;
+
+`ord( (string) character )` `==>` `(int) asciiValue`
+
+The same of PHP's `ord` function.
+
+&nbsp;
+
+`htmlentities( (string) text )` `==>` `(string) result`
+
+The same of PHP's `htmlentities` function.
+
+&nbsp;
+
+`md5( (string) text )` `==>` `(string) result`
+
+The same of PHP's `md5` function.
+
+&nbsp;
+
+`sha1( (string) text )` `==>` `(string) result`
+
+The same of PHP's `sha1` function.
+
+&nbsp;
+
+`ltrim( (string) str [, (string) characters] )` `==>` `(string) result`
+
+The same of PHP's `ltrim` function.
+
+&nbsp;
+
+`rtrim( (string) str [, (string) characters] )` `==>` `(string) result`
+
+The same of PHP's `rtrim` function.
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+ 
+
+###
 
 ```
 Copyright (c) 2024-2025 Paolo Bertani - Kalei S.r.l.

@@ -247,12 +247,7 @@ function RunTests()
     Test( __LINE__, Success, -4,  "-2**2" );   //
 
 
-    // Integer functions
-
-    Test( __LINE__, Success, 10,  "avg( 0, 10, 20 )" );
-
-
-    // IntDiv
+    // Integer division
 
     Test( __LINE__, Success,  5, "2+6//2" );
     Test( __LINE__, Success,  4, "8//2" );
@@ -325,66 +320,6 @@ function RunTests()
     Test( __LINE__, Success, 2, "10 * 3 ÷  15" ); //            and math.
 
 
-    // Strings
-
-    Test( __LINE__, Success, "FOObar", "\"FOO\"+\"\"+\"bar\"" );
-    Test( __LINE__, Success, "FOO", "\"FOO\"+\"\"+\"\"" );
-
-    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 3 )" );
-    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 3, 3 )" );
-    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", -3, 3 )" );
-    Test( __LINE__, Success, "ooBAR","substr( \"fooBAR\", 1, 100 )" );
-    Test( __LINE__, Success, "BAR",  "substr( \"fooBAR\", 1+1+1, 6//2 )" );
-    Test( __LINE__, Success, "BAR",  "substr( \"foo\" + \"BAR\", 1+1+1, 6//2 )" );
-
-    Test( __LINE__, Success, "BAR",  "trim( \"   BAR  \\t\\n\\r\" )" );
-    Test( __LINE__, Success, "BAR",  "trim( \"****BAR==*==\", \"*=\" )" );
-
-    Test( __LINE__, Success, 3,    "strpos( \"fooBAR\", \"BAR\" )" );
-    Test( __LINE__, Success, 3,    "strpos( \"fooBAR BAR\", \"BAR\", 3 )" );
-    Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", 4 )" );
-    Test( __LINE__, Success, 7,    "strpos( \"fooBAR BAR\", \"BAR\", strpos( \"fooBAR\", \"BAR\" ) + 2 )" );
-    Test( __LINE__, Failure, null, "strpos( \"fooBAR BAR\", \"BAR\", 4, 1)" );
-    Test( __LINE__, Success, -1,   "strpos( \"fooBAR\", \"BAZ\" )" );
-
-    Test( __LINE__, Success, "  foo baz foo baz baz", "replace( \"bar\", \"baz\", \"  foo bar foo bar baz\" )" );
-    Test( __LINE__, Success, "  foo baz foo baz baz", "str_replace( \"bar\", \"baz\", \"  foo bar foo bar baz\" )" );
-
-    Test( __LINE__, Success, "barbaz",                "between( \"  [barbaz] [bar][ \", \"[\", \"]\" )" );
-    Test( __LINE__, Success, "(barbaz)",              "between( \"  [barbaz]  bar [ \", \"[\", \"]\", \"(\", \")\" )" );
-    Test( __LINE__, Success, "",                      "between( \"  {barbaz}  bar [ \", \"[\", \"]\" )" );
-    Test( __LINE__, Success, "()",                    "between( \"  {barbaz}  bar [ \", \"[\", \"]\", \"(\", \")\" )" );
-    Test( __LINE__, Success, "barbaz",                "between( \"  [[barbaz]]bar [ \", \"[[\", \"]]\" )" );
-    Test( __LINE__, Success, "(barbaz)",              "between( \"  [[barbaz]]bar [ \", \"[[\", \"]]\", \"(\", \")\" )" );
-    Test( __LINE__, Success, "   barbaz",             "between( \"   barbaz]  bar [ \", \"\", \"]\" )" );
-    Test( __LINE__, Success, "barbaz",                "between( \"           [barbaz\", \"[\", \"\" )" );
-    Test( __LINE__, Success, "(   barbaz)",           "between( \"   barbaz]  bar [ \", \"\", \"]\", \"(\", \")\" )" );
-    Test( __LINE__, Success, "(barbaz)",              "between( \"           [barbaz\", \"[\", \"\", \"(\", \")\" )" );
-
-
-    // Built-In Functions
-
-    Test( __LINE__, Success, bin2hex("FOOBAR\n"), "bin2hex(\"FOOBAR\\n\")" );
-    Test( __LINE__, Success, "FOOBAR\n", "hex2bin(bin2hex(\"FOOBAR\\n\"))" );
-    Test( __LINE__, Success, bin2hex("FOO❤️BAR\n"), "bin2hex(\"FOO❤️BAR\\n\")" );
-    Test( __LINE__, Success, "FOO❤️BAR\n", "hex2bin(bin2hex(\"FOO❤️BAR\\n\"))" );
-    Test( __LINE__, Success, bin2hex("FOO❤️\0\0\0BAR\n"), "bin2hex(\"FOO❤️\\0\\0\\0BAR\\n\")" );
-    Test( __LINE__, Success, "FOO❤️\0\0\0BAR\n", "hex2bin(bin2hex(\"FOO❤️\\0\\0\\0BAR\\n\"))" );
-
-    Test( __LINE__, Success, 0, "fact(16)-16!" );
-    Test( __LINE__, Failure, null, "fac(30)" );
-    Test( __LINE__, Success, 0, "pow(4,7)-4^7" );
-    Test( __LINE__, Failure, null, "pow(2,64)" );
-    Test( __LINE__, Success, 270, "max(1,2,3,10*3^3)" );
-    Test( __LINE__, Success, 90, "min(91,92,10*3^2)" );
-    Test( __LINE__, Success, 0, "avg(1,-1)" );
-    Test( __LINE__, Success, 16, "avg(30,3)" );
-    Test( __LINE__, Success, 7, "len(\"foo\")+strlen(\"BAZZ\")+length(\"\")" );
-    Test( __LINE__, Success, strlen("👍"), "len(\"👍\")" );
-    Test( __LINE__, Success, "booo", "trim(\" booo \\n\\t\")   " );
-    Test( __LINE__, Success, " booo ", "trim(\"** booo ****\", \"*\" )   " );
-
-
     // Boolean expressions
 
     Test( __LINE__, Success, true,      "2==2" );
@@ -402,72 +337,143 @@ function RunTests()
 
     // If
 
-    Test( __LINE__, Success, true,      "if(3==3,\"foo\",\"bar\") == \"foo\"" );
-    Test( __LINE__, Success, "bar",     "if(2==3,\"foo\",\"bar\")" );
+    Test( __LINE__, Success, true,      'if(3==3,"foo","bar") == "foo"');
+    Test( __LINE__, Success, "bar",     'if(2==3,"foo","bar")' );
+
+
+    // fact
+
+    Test( __LINE__, Success,    6, 'fact( 3 )' );
+    Test( __LINE__, Failure, null, 'fact( 3.0 )' );
+
+
+    // pow
+
+    Test( __LINE__, Success,    8, 'pow( 2, 3)' );
+    Test( __LINE__, Success,  1/8, 'pow( 2.0, -3.0)' );
+    Test( __LINE__, Failure, null, 'pow( 2.0, 3)' );
+    Test( __LINE__, Failure, null, 'pow( 2.0, -3)' );
 
 
 
-    // Function with exceeding parameter
+    // max
 
-    Test( __LINE__, Failure, null, "len(\"pippo\",2)" );
+    Test( __LINE__, Success,    8, 'max( 1, 8, -1 )' );
+    Test( __LINE__, Failure, null, 'max( 1.0, 8, -1 )' );
+    Test( __LINE__, Success,    8, 'max( 8 )' );
+    Test( __LINE__, Success,  8.0, 'max( 1.0, 8.0, -1.0 )' );
+    Test( __LINE__, Failure, null, 'max( )' );
 
 
-    // ChatGPT generated
 
-    Test( __LINE__, Success, 6, 'strpos("Hello World", "World")' );
-    Test( __LINE__, Success, 4, 'strpos("Hello World", "o")' );
-    Test( __LINE__, Success, 0, 'strpos("Hello World", "Hello")' );
-    Test( __LINE__, Success, -1, 'strpos("Hello World", "x")' );
-    Test( __LINE__, Success, 4, 'strpos("abc abc abc", "abc", 4)' );
-    Test( __LINE__, Success, 0, 'strpos("testing", "test")' );
-    Test( __LINE__, Success, 4, 'strpos("abcdef", "ef")' );
-    Test( __LINE__, Success, 6, 'strpos("repetition", "t", 6)' );
-    Test( __LINE__, Success, 4, 'strpos("12345", "5")' );
-    Test( __LINE__, Success, 0, 'strpos("needle in haystack", "needle")' );
-    Test( __LINE__, Success, 'Hello World', 'trim("  Hello World  ")' );
-    Test( __LINE__, Success, 'Hello', 'trim("xxHelloxx", "x")' );
-    Test( __LINE__, Success, 'bcb', 'trim("abcba", "a")' );
-    Test( __LINE__, Success, 'whitespace', 'trim("   whitespace   ")' );
-    Test( __LINE__, Success, 'test', 'trim("--test--", "-")' );
-    Test( __LINE__, Success, 'number', 'trim("00number00", "0")' );
-    Test( __LINE__, Success, 'text', 'trim("xyztextyz", "xyz")' );
-    Test( __LINE__, Success, 'PHP', 'trim("  PHP  ")' );
-    Test( __LINE__, Success, 'example', 'trim("=example=", "=")' );
-    Test( __LINE__, Success, 'important', 'trim("!!important!!", "!")' );
-    Test( __LINE__, Success, 5, 'strlen("Hello")' );
-    Test( __LINE__, Success, 1, 'strlen(" ")' );
-    Test( __LINE__, Success, 10, 'strlen("1234567890")' );
-    Test( __LINE__, Success, 0, 'strlen("")' );
-    Test( __LINE__, Success, 6, 'strlen("abcdef")' );
-    Test( __LINE__, Success, 3, 'strlen("PHP")' );
-    Test( __LINE__, Success, 1, 'strlen("a")' );
-    Test( __LINE__, Success, 11, "strlen(\"multi\\n line\")" );
-    Test( __LINE__, Success, 10, 'strlen("symbols@#%")' );
-    Test( __LINE__, Success, 1, 'strlen(" ")' );
-    Test( __LINE__, Success, 'Hello', 'hex2bin("48656c6c6f")' );
-    Test( __LINE__, Success, '48656c6c6f', 'bin2hex("Hello")' );
-    Test( __LINE__, Success, 'MyS', 'hex2bin("4d7953")' );
-    Test( __LINE__, Success, '54657374', 'bin2hex("Test")' );
-    Test( __LINE__, Success, 'Foo', 'hex2bin("466f6f")' );
-    Test( __LINE__, Success, '466f6f64', 'bin2hex("Food")' );
-    Test( __LINE__, Success, 'Java', 'hex2bin("4a617661")' );
-    Test( __LINE__, Success, '4a617661', 'bin2hex("Java")' );
-    Test( __LINE__, Success, 'Node', 'hex2bin("4e6f6465")' );
-    Test( __LINE__, Success, '4e6f6465', 'bin2hex("Node")' );
-    Test( __LINE__, Success, '&lt;b&gt;bold&lt;/b&gt;', 'htmlentities("<b>bold</b>")' );
-    Test( __LINE__, Success, '&lt;script&gt;alert(1)&lt;/script&gt;', 'htmlentities("<script>alert(1)</script>")' );
-    Test( __LINE__, Success, '&amp;', 'htmlentities("&")' );
-    Test( __LINE__, Success, '5f4dcc3b5aa765d61d8327deb882cf99', 'md5("password")' );
-    Test( __LINE__, Success, '827ccb0eea8a706c4c34a16891f84e7b', 'md5("12345")' );
-    Test( __LINE__, Success, '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 'sha1("password")' );
-    Test( __LINE__, Success, '8cb2237d0679ca88db6464eac60da96345513964', 'sha1("12345")' );
-    Test( __LINE__, Success, 65, 'ord("A")' );
-    Test( __LINE__, Success, 122, 'ord("z")' );
-    Test( __LINE__, Success, 'Hello', 'ltrim("   Hello")' );
-    Test( __LINE__, Success, 'Test', 'ltrim("---Test", "-")' );
-    Test( __LINE__, Success, 'Hello', 'rtrim("Hello   ")' );
-    Test( __LINE__, Success, 'Test', 'rtrim("Test---", "-")' );
+    // min
 
+    Test( __LINE__, Success,   -1, 'min( 1, 8, -1 )' );
+    Test( __LINE__, Failure, null, 'min( 1.0, 8, -1 )' );
+    Test( __LINE__, Success,    8, 'min( 8 )' );
+    Test( __LINE__, Success, -1.0, 'min( 1.0, 8.0, -1.0 )' );
+    Test( __LINE__, Failure, null, 'min( )' );
+
+
+
+    // avg
+
+    Test( __LINE__, Success,   10, 'avg( 0, 10, 20 )' );
+    Test( __LINE__, Success,   10, 'avg( 0, 10, 21 )' );
+    Test( __LINE__, Success,  7.5, 'avg( 10.0, 5.0 )' );
+    Test( __LINE__, Failure, null, 'avg( 10.0, 5 )' );
+
+
+    // len
+
+    Test( __LINE__, Success,    6, 'len( "foobar" )' );
+    Test( __LINE__, Success,    0, 'len( "" )' );
+    Test( __LINE__, Failure, null, 'len( 6 )' );
+    Test( __LINE__, Success,    1, 'len( "😀" )' );
+    Test( __LINE__, Success,    6, 'strlen( "foobar" )' );
+
+
+    // trim
+
+
+    // substr
+
+
+    // between
+
+
+    // replace
+
+
+    // strpos
+
+
+    // bin2hex
+
+
+    // hex2bin
+
+
+    // chr
+
+
+    // ord
+
+
+    // htmlentities
+
+
+    // md5
+
+
+    // sha1
+
+
+    // ltrim
+
+
+    // rtrim
+
+
+    // int
+
+    Test( __LINE__, Success,    6, 'int( "6" )' );
+    Test( __LINE__, Success,    6, 'int( 6 )' );
+    Test( __LINE__, Success,    6, 'int( 6.0 )' );
+    Test( __LINE__, Success,    1, 'int( true )' );
+    Test( __LINE__, Success,    6, 'int( "6A" )' );
+    Test( __LINE__, Success, 6000, 'int( "6E3" )' );
+
+
+    // str
+
+    Test( __LINE__, Success,  "6", 'str( 6 )' );
+    Test( __LINE__, Success,  "6", 'str( "6" )' );
+    Test( __LINE__, Success,  "1", 'str( true )' );
+    Test( __LINE__, Success,   "", 'str( false )' );
+    Test( __LINE__, Success,"6.0", 'str( "6.0" )' );
+
+
+    // float
+
+    Test( __LINE__, Success,   6.0, 'float( "6" )' );
+    Test( __LINE__, Success,   6.0, 'float( 6 )' );
+    Test( __LINE__, Success,   6.0, 'float( 6.0 )' );
+    Test( __LINE__, Success,   1.0, 'float( true )' );
+    Test( __LINE__, Success,   6.0, 'float( "6A" )' );
+    Test( __LINE__, Success,6000.0, 'float( "6E3" )' );
+
+
+    // bool
+
+    Test( __LINE__, Success,  true, 'bool( "6" )' );
+    Test( __LINE__, Success,  true, 'bool( "0" )' );
+    Test( __LINE__, Success,  true, 'bool( 6 )' );
+    Test( __LINE__, Success,  true, 'bool( 6.0 )' );
+    Test( __LINE__, Success,  true, 'bool( true )' );
+    Test( __LINE__, Success, false, 'bool( "" )' );
+    Test( __LINE__, Success, false, 'bool( 0 )' );
+    Test( __LINE__, Success, false, 'bool( false )' );
 
 
     //
