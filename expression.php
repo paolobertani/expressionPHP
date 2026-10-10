@@ -966,11 +966,16 @@ function _coreParseHigher( $eval,
 }
 
 
-/*     `_evaluateFunction()`
 
-   Evaluates the expression(s) (comma separated params if multiple)
-   inside the round brackets then computes the function
-   specified by the token `func`. */
+/*
+ * _evaluateFunction
+ *
+ * Evaluate the arguments and compute the function specified by its token.
+ * Count between() delimiters in characters to match its multibyte positions.
+ *
+ * edited by Samantha Allman (aka Codex GPT-6)
+ *
+ */
 
 function _evaluateFunction( $eval, $func )
 {
@@ -1319,7 +1324,7 @@ function _evaluateFunction( $eval, $func )
             }
             else
             {
-                $startPos += strlen( $start );
+                $startPos += mb_strlen( $start );
 
                 $endPos = $end === "" ? mb_strlen( $text ) : mb_strpos( $text, $end, $startPos );
                 if( $endPos === false )

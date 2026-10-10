@@ -30,9 +30,14 @@ RunTests();
 
 
 
-//
-// Execute all tests.
-//
+/*
+ * RunTests
+ *
+ * Execute the expression tests, including multibyte delimiters in between().
+ *
+ * edited by Samantha Allman (aka Codex GPT-6)
+ *
+ */
 
 function RunTests()
 {
@@ -400,6 +405,12 @@ function RunTests()
 
 
     // between
+
+    Test( __LINE__, Success,   "ABC", 'between( "aABCz", "a", "z" )' );
+    Test( __LINE__, Success,   "ABC", 'between( "àABCz", "à", "z" )' );
+    Test( __LINE__, Success,   "été", 'between( "pré😀été終", "😀", "終" )' );
+    Test( __LINE__, Success,   "ABC", 'between( "àABC", "à", "" )' );
+    Test( __LINE__, Success, "[ABC]", 'between( "àABCz", "à", "z", "[", "]" )' );
 
 
     // replace
